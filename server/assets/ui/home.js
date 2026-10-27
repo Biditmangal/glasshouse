@@ -295,17 +295,18 @@ function renderHomeRows() {
       const it = homeItem(kind, id);
       if (!it) return '';
       const hidden = kind !== 'ch' && homeLayout.hidden[kind].includes(id);
+      const folded = kind === 'app' && (homeLayout.folder || []).includes(id);
       // Hidden or not, an input with nothing plugged in is left out by the row's switch.
       const leftOut = kind === 'dev' && it.unused && homeLayout.hideUnused === true;
       const icon = it.icon ? `<img class="rk-ico" src="${esc(api(it.icon))}" alt="">` : '';
-      return `<div class="prot-row home-tile${hidden || leftOut ? ' home-hidden' : ''}">
+      return `<div class="prot-row home-tile${hidden || folded || leftOut ? ' home-hidden' : ''}">
         <div class="prot-main"><div class="prot-title">${icon}<span translate="no">${esc(it.title)}</span></div>
           ${it.sub ? `<div class="prot-desc">${esc(it.sub)}</div>` : ''}</div>
         <div class="prot-status">
           ${leftOut ? `<span class="pill idle">${esc(t('home.leftOut', 'Left out'))}</span>` : ''}
           <button type="button" class="pill idle home-move" ${movable && i > 0 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, -1)" aria-label="${esc(t('home.earlier', 'Earlier'))}">↑</button>
           <button type="button" class="pill idle home-move" ${movable && i < order.length - 1 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, 1)" aria-label="${esc(t('home.later', 'Later'))}">↓</button>
-          ${it.lg ? `<span class="pill idle home-fixed-pill">${esc(t('home.alwaysShown', 'Always shown'))}</span>` :
+          ${kind === 'app' ? homePlaceSelect(id, it, hidden, folded, usable) :
             kind === 'ch' ? `<button type="button" class="pill idle" ${usable ? '' : 'disabled'} onclick="homeToggleChannel('${jsq(id)}')">${esc(t('home.ch.remove', 'Remove'))}</button>` :
             renderToggle({ cls: hidden ? 'idle' : 'good', label: hidden ? t('home.hidden', 'Hidden') : t('home.shown', 'Shown'),
               disabled: !usable, onclick: `homeToggleTile('${kind}', '${jsq(id)}')` })}
@@ -396,6 +397,29 @@ function homeToggleTile(kind, id) {
   if (i >= 0) list.splice(i, 1); else list.push(id);
   hidden[kind] = list;
   homeSaveLayout({ hidden });
+}
+
+/*
+ * An app is on the Apps row, in its More apps tile, or hidden. The LG Home
+ * tile is the way back to LG's Home, so it is never hidden, but it may go in
+ * the folder, where it is still reached.
+ */
+function homePlaceSelect(id, it, hidden, folded, usable) {
+  const place = hidden ? 'hidden' : folded ? 'folder' : 'row';
+  const opt = (value, label) => `<option value="${value}"${place === value ? ' selected' : ''}>${esc(label)}</option>`;
+  return `<select class="pill-sel" ${usable ? '' : 'disabled'} aria-label="${esc(t('home.place', 'Where it shows'))}"
+      onchange="homeSetPlace('${jsq(id)}', this.value)">
+    ${opt('row', t('home.shown', 'Shown'))}${opt('folder', t('home.folder.label', 'In More apps'))}${it.lg ? '' : opt('hidden', t('home.hidden', 'Hidden'))}
+  </select>`;
+}
+
+function homeSetPlace(id, place) {
+  const hidden = Object.assign({}, homeLayout.hidden);
+  hidden.app = hidden.app.filter(x => x !== id);
+  const folder = (homeLayout.folder || []).filter(x => x !== id);
+  if (place === 'hidden') hidden.app.push(id);
+  if (place === 'folder') folder.push(id);
+  homeSaveLayout({ hidden, folder });
 }
 
 function homeResetLayout() { homeSaveLayout({ reset: true }); }

@@ -233,6 +233,9 @@ function defaults() {
     order: { app: [], dev: [], ch: [] },
     sort: { app: 'custom', dev: 'custom', ch: 'custom' },
     hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
+    // Apps moved off the Apps row into its More apps tile, in no order of
+    // their own: the folder shows them in the row's.
+    folder: [],
     channels: [],
     hintSeen: false,
     searchHintSeen: false,
@@ -292,6 +295,9 @@ function normalise(raw) {
     .filter(function (id) { return chHidden.indexOf(id) === -1; });
   d.order.ch = [];
   d.hidden.ch = [];
+  // A hidden app shows nowhere, so it is not also in the folder.
+  var appHidden = d.hidden.app;
+  d.folder = stringList(raw.folder).filter(function (id) { return appHidden.indexOf(id) === -1; });
   d.enabled = raw.enabled === true;
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
@@ -402,6 +408,7 @@ function setLayout(body, cb) {
     order: perRow(body.order, c.order),
     sort: perRow(body.sort, c.sort),
     hidden: perRow(body.hidden, c.hidden),
+    folder: body.folder !== undefined ? body.folder : c.folder,
     // A moved Channels row reorders the channels themselves.
     channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
@@ -423,6 +430,7 @@ function setLayout(body, cb) {
     next.order = d.order;
     next.sort = d.sort;
     next.hidden = d.hidden;
+    next.folder = d.folder;
   }
   config = next;
   if (!saveConfig()) {
@@ -436,7 +444,7 @@ function setLayout(body, cb) {
 }
 
 function layoutOf(c) {
-  return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen,
+  return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, folder: c.folder, channels: c.channels, hintSeen: c.hintSeen,
     searchHintSeen: c.searchHintSeen, picture: c.picture, search: c.search, fade: c.fade, hideUnused: c.hideUnused,
     showLastOn: c.showLastOn, showAppCount: c.showAppCount, showCec: c.showCec, colours: c.colours,
     // Not saved: { host, by } while the ad blocker blocks LG's search (lib/home-search).

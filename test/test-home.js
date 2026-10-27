@@ -344,6 +344,25 @@ step('the LG Home tile cannot be hidden, and unknown rows are dropped', function
   });
 });
 
+step('apps in More apps are saved, kept by a layout that does not name them, and never also hidden', function (done) {
+  start(null);
+  home.setLayout({ folder: ['netflix', 'lg-home', 'netflix', 7] }, function (r) {
+    assert.ok(r.ok);
+    assert.deepEqual(r.layout.folder, ['netflix', 'lg-home'], 'the LG Home tile may go in; repeats and non-strings are dropped');
+    // A dashboard's save sends no folder.
+    home.setLayout({ hidden: { dev: ['HDMI_1'] } }, function (r2) {
+      assert.deepEqual(r2.layout.folder, ['netflix', 'lg-home']);
+      home.setLayout({ hidden: { app: ['netflix'] } }, function (r3) {
+        assert.deepEqual(r3.layout.folder, ['lg-home'], 'a hidden app leaves the folder');
+        home.setLayout({ reset: true }, function (r4) {
+          assert.deepEqual(r4.layout.folder, [], 'a reset empties it');
+          done();
+        });
+      });
+    });
+  });
+});
+
 var clock = 0;
 function at(id) { clock += 1000; foreground(id); }
 
