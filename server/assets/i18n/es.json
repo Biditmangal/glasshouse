@@ -1953,6 +1953,7 @@
  "server.port.short": {"text": "El puerto en el que responde este panel, 8080 salvo que se cambie. Cámbialo si otra app de la TV necesita el 8080, por ejemplo Stremio. Al guardar se reinicia el servidor y esta página pasa a la nueva dirección.", "from": "The port this dashboard answers on, 8080 unless changed. Change it if another app on the TV needs 8080, such as Stremio. Saving restarts the server, and this page follows to the new address."},
  "server.port.title": {"text": "Puerto del panel", "from": "Dashboard port"},
  "srv.home.backupFailed": {"text": "Puede que otros ajustes se hayan restaurado, pero el diseño de Home no: {error}", "from": "Other settings may have been restored, but the Home layout could not be restored: {error}"},
+ "srv.apps.tilesGlasshouseHome": {"text": "Glasshouse Home oculta las apps por sí mismo: organízalas allí", "from": "Glasshouse Home hides apps itself: arrange them there"},
  "srv.home.busy": {"text": "Glasshouse Home se está cambiando; inténtalo cuando termine", "from": "Glasshouse Home is being changed; try again when it has finished"},
  "srv.home.closeRefused": {"text": "la TV no quiso cerrarla", "from": "the TV would not close it"},
  "srv.home.glasshouseHomeOn": {"text": "Glasshouse Home está en lugar del Inicio de LG. Desactívalo en la pestaña Home para cambiar la pantalla de Inicio de LG.", "from": "Glasshouse Home is in LG's Home's place. Switch it off on the Home tab to change LG's Home screen."},

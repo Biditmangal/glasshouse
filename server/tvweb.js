@@ -1838,7 +1838,8 @@ function startGlasshouseHome() {
       if (on !== homeWatchesForeground) liveState[on ? 'startGroup' : 'stopGroup']('application');
       homeWatchesForeground = on;
     },
-    pictureDetails: function (on) { homePicture.want('details', on); }
+    pictureDetails: function (on) { homePicture.want('details', on); },
+    handOverTileHiding: function (hide) { appsModule.handOverToHome(hide); }
   });
   glasshouseHome.start();
 }

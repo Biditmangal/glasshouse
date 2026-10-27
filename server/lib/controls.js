@@ -832,6 +832,9 @@ function doControl(action, value, cb) {
 
     case 'tileHiding':
       if (isFromHbc()) return cb({ ok: false, error: tileHidingOffMsg });
+      if (value && homeModule && homeModule.enabled()) {
+        return cb({ ok: false, error: msg('srv.apps.tilesGlasshouseHome', 'Glasshouse Home hides apps itself: arrange them there') });
+      }
       return appsModule.setTileHidingEnabled(!!value, function (r) {
         telemetry.clearCache();
         cb(r);

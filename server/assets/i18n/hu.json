@@ -1179,6 +1179,7 @@
  "srv.home.backupFailed": {"text": "Más beállítások visszaállítása sikerülhetett, de a Kezdőképernyő elrendezését nem sikerült visszaállítani: {error}", "from": "Other settings may have been restored, but the Home layout could not be restored: {error}"},
  "srv.home.banner": {"text": "Szalaghirdetés", "from": "Banner"},
  "srv.home.banner.desc": {"text": "A felső nagy kép az LG hirdetéseivel vagy saját üzenetével, mellette a profil, az értesítések, a beállítások és a keresés gombjaival.", "from": "The large picture at the top, with LG's adverts or its own message, and the profile, notifications, settings and search buttons beside it."},
+ "srv.apps.tilesGlasshouseHome": {"text": "A Glasshouse Home maga rejti el az alkalmazásokat: ott rendezze el őket", "from": "Glasshouse Home hides apps itself: arrange them there"},
  "srv.home.busy": {"text": "A Glasshouse Home módosítása folyamatban van; próbálja újra, ha befejeződött", "from": "Glasshouse Home is being changed; try again when it has finished"},
  "srv.home.closeRefused": {"text": "a TV nem zárta be", "from": "the TV would not close it"},
  "srv.home.deviceFunctions": {"text": "Legutóbbi bemenet és eszközfunkciók", "from": "Recent Input and Device Functions"},
