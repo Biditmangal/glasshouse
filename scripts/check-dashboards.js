@@ -1143,13 +1143,13 @@ async function visitHomeUploads(browser, base, problems) {
  * The Home tab: left out where neither Glasshouse Home nor LG's Home's options
  * are offered; with LG's Home's options alone (a B8) it shows only those, Open
  * Home at power-on among them, usable without Glasshouse Home; and
- * with Glasshouse Home on, LG's Home's layout is left out and hidden system
- * apps stay.
+ * with Glasshouse Home on, LG's Home's layout and hidden system apps are
+ * left out (lgHomeOptions in lib/routes.js offers no tile hiding then).
  */
 async function visitHomeAvailability(browser, base, problems) {
   const lgHome = enabled => ({ writable: true, glasshouseHome: enabled,
     homeScreen: { parts: [{ id: 'banner', title: 'Banner', desc: 'The banner.', shown: true }], inputs: null, experimental: null },
-    tileHidingAvailable: true, tileHidingEnabled: false, systemTiles: [], hiddenCount: 0 });
+    tileHidingAvailable: !enabled, tileHidingEnabled: false, systemTiles: [], hiddenCount: 0 });
   const cases = [
     { name: 'unavailable', st: { available: false, enabled: false }, glasshouse: false },
     { name: 'LG\'s Home only', st: { available: true, enabled: false, lgHomeAvailable: true, lgHome: lgHome(false), homeAutoLaunch: false }, glasshouse: false },
@@ -1176,7 +1176,7 @@ async function visitHomeAvailability(browser, base, problems) {
         continue;
       }
       if (await page.locator('#home-hero').isVisible() !== c.glasshouse) fail('Glasshouse Home\'s switch ' + (c.glasshouse ? 'missing' : 'shown'));
-      if (!await page.locator('#disc-system-tiles').isVisible()) fail('system apps missing');
+      if (await page.locator('#disc-system-tiles').isVisible() === c.glasshouse) fail('system apps ' + (c.glasshouse ? 'shown with Glasshouse Home on' : 'missing'));
       if (st.homeAutoLaunch !== undefined && (!await page.locator('#home-autolaunch').isVisible() || await page.locator('#home-autolaunch').isDisabled()))
         fail('Open Home at power-on missing or unusable');
       if (!c.glasshouse && await page.locator('#home-picture-row').isVisible()) fail('Glasshouse Home\'s options shown without it');

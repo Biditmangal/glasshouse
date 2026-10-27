@@ -1083,6 +1083,8 @@ function lgHomeOptions(glasshouseHome, cb) {
       cb(lg);
     });
   }
+  // Glasshouse Home hides apps itself, and takes over what tile hiding hid.
+  if (glasshouseHome) lg.tileHidingAvailable = false;
   if (!lg.tileHidingAvailable) return withLayout();
   appsModule.getApps(function (d) {
     lg.systemTiles = d.systemTiles || [];
@@ -1748,6 +1750,9 @@ function handleRequest(req, res) {
 
   if (pathname === '/api/apps/tile-hiding' && req.method === 'POST') {
     return readJsonBody(req, res, function (body) {
+      if (body && body.enabled && homeModule && homeModule.enabled()) {
+        return send(res, 400, JSON.stringify({ ok: false, error: msg('srv.apps.tilesGlasshouseHome', 'Glasshouse Home hides apps itself: arrange them there') }));
+      }
       appsModule.setTileHidingEnabled(body && body.enabled, function (r) {
         send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
       });

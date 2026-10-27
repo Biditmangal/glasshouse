@@ -138,6 +138,8 @@ var systemctlPath = '';
 // Starts and stops reading the remote's Home button (lib/remotebuttons).
 /** @type {function(boolean): void} */
 var homeKeysFn = function () {};
+/** @type {(hide: (ids: string[]) => void) => void} */
+var handOverFn = function () {};
 // Told whether the plate's picture details are on, at start and on each change.
 /** @type {function(boolean): void} */
 var pictureDetailsFn = function () {};
@@ -391,6 +393,15 @@ function perRow(sent, kept) {
     out[r] = sent && typeof sent === 'object' && sent[r] !== undefined ? sent[r] : kept[r];
   });
   return out;
+}
+
+// Apps added to the Apps row's hidden ones: those tile hiding hid, as it is
+// handed to Glasshouse Home (handOverToHome in lib/apps.js).
+function hideApps(ids) {
+  var c = readConfig(), have = c.hidden.app, kept = c.folder || [];
+  // An app put in More apps was chosen to stay reachable.
+  var add = ids.filter(function (id) { return have.indexOf(id) === -1 && kept.indexOf(id) === -1; });
+  if (add.length) setLayout({ hidden: { app: have.concat(add) } }, function () {});
 }
 
 // The layout the dashboard and the view's arrange mode send.
@@ -1661,6 +1672,7 @@ function init(opts) {
     : SYSTEMCTLS.filter(function (p) { return fs.existsSync(p); })[0] || '';
   allowExperimentalFn = opts.allowExperimental || function () { return false; };
   homeKeysFn = opts.homeKeys || function () {};
+  handOverFn = opts.handOverTileHiding || function () {};
   pictureDetailsFn = opts.pictureDetails || function () {};
   setHomeKeyFn = opts.setHomeKey || function (id, cb) { cb({ ok: true, none: true }); };
   homeKeyAppFn = opts.homeKeyApp || function () { return ''; };
@@ -1742,7 +1754,10 @@ function start() {
       console.log('home: not offered on this TV (' + supported().reason + '); switched off');
       return disable(function (r) { if (!r.ok) console.error('home: ' + r.error); });
     }
-    if (c.enabled) homeKeysFn(true);
+    if (c.enabled) {
+      homeKeysFn(true);
+      handOverFn(hideApps);
+    }
     if (c.restorePending || (!c.enabled && takeover.mounted())) {
       return disable(function (r) { if (!r.ok) console.error('home: ' + r.error); });
     }
@@ -1781,7 +1796,17 @@ module.exports = {
   open: open,
   setLayout: function (body, cb) { change(function (done) { setLayout(body, done); }, cb); },
   setHideLgHomeAtStart: function (body, cb) { change(function (done) { setHideLgHomeAtStart(body, done); }, cb); },
-  enable: function (cb) { change(function (done) { enable(function (r) { if (r.ok) homeKeysFn(true); done(r); }); }, cb); },
+  enable: function (cb) {
+    change(function (done) {
+      enable(function (r) {
+        if (r.ok) {
+          homeKeysFn(true);
+          handOverFn(hideApps);
+        }
+        done(r);
+      });
+    }, cb);
+  },
   disable: function (cb) { change(function (done) { disable(function (r) { homeKeysFn(false); done(r); }); }, cb); },
   uninstall: function (cb) { change(uninstall, cb); },
   beat: beat,
@@ -1807,6 +1832,7 @@ module.exports = {
     cb({ ok: false, error: 'removeUploads, remove or examples expected' });
   },
   normalise: normalise,
+  hideApps: hideApps,
   layout: function () { return layoutOf(readConfig()); },
   programme: programme,
   enabled: function () { return readConfig().enabled; },
