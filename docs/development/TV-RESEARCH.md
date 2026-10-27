@@ -1016,6 +1016,13 @@ and others' work on webOS 10
   `com.webos.service.tv.capture/executeOneShot` takes the same payload,
   answers `capturedWidth: 0` and still writes the file, and its picture
   includes the HDMI video, which the C2's leaves black.
+- On a C9 (webOS 4.10.0) with LG Input Hook (`org.webosbrew.inputhook`, 1.5.1)
+  started by its boot script, which injects `libinputhookpp.so` into
+  `tvservice` with `ezinject`, `tv.capture/executeOneShot` answered "Device
+  or resource busy" for every method from the first call after a boot, then
+  stopped answering, through restarts and a power cut; `isLocked` said
+  `false` and no other client called it. With the boot script moved aside and
+  a restart, the same call worked.
 - `luna-send` run from an SSH shell can print nothing for
   `com.webos.applicationManager` calls, while the same call from a node child
   process answers.
@@ -1422,6 +1429,42 @@ Measured on 26 October 2026 on a 50QNED72B6B (43.11.85), Quick Start+ off.
   `com.webos.app.home` from there brought Glasshouse Home to the front.
 - **With Quick Start+ on**, a wake by the remote from Active Standby or
   Suspend had Glasshouse Home in front with no Live TV before it.
+
+## What the TV opens as it starts (C9, webOS 4.10.0)
+
+Measured on 27 October 2026 on an OLED65C97LA, Quick Start+ on.
+
+- **bootd takes the first app from its own config.** `/etc/palm/bootd.json`
+  has `common.firstApp.firstAppInNormal` `{LAST_INPUT_APP}`, and
+  `common.firstAppByPowerOnReason` maps reasons to apps: `netflix`,
+  `amazon` and `ivi` to those apps, `remoteKey` and `localKey` to
+  `{LAST_APP}`. A reason not listed takes `firstAppInNormal`. Both
+  placeholders came out as the last input (`utp.externaldevice/getLastInput`,
+  `HDMI_2`, kept in `/var/lib/eim/lastinput`), whatever app was in front at
+  the switch off.
+- **`/var/luna/preferences/bootd.json` replaces it.** bootd's constructor
+  checks it with `access()` and parses it instead of the file in `/etc`, not
+  on top of it, so it must be a whole config. It is read once, as bootd
+  starts: a cold start is needed, and a Quick Start+ wake uses what was read.
+- **An app as the first app.** With `firstAppInNormal`, `remoteKey`,
+  `localKey` and `wakeOnWiFi` set to Luma (`com.ecklf.luma`) and `hdmiCec` to
+  `{LAST_INPUT_APP}`, a Wake-on-LAN from Suspend opened Luma through
+  `com.webos.coverUI/open` 0.34 s after Active, and the last input (HDMI 2,
+  a PS5 woken by it over HDMI-CEC) was not opened at all. The TV closes
+  Luma at each switch off, so this is a fresh start: its window was up 1.3 s
+  after the launch.
+- **A cold start is slow for an app installed in developer mode.** bootd
+  launched Luma 15 s in, got no reply from sam within 5 s three times
+  ("Fail to launch firstApp. Retry") and gave up; sam had its launch points
+  at 45 s (bootd's `listLaunchPoints`), and Luma was in front at 52 s. LG's
+  Home and `com.webos.app.inputcommon` were restored from snapshots at 3.8 s,
+  and with the last input as the first app the input was in front at 15 s.
+- **Writing the settings service's `general.lastInputApp` and
+  `physicalLastInputApp`** to an app changed nothing: bootd still asked
+  `getLastInput`, and the TV wrote HDMI 2 back.
+- **The power-on reasons seen:** `remoteKey`, `wakeOnWiFi` (Wake-on-LAN over
+  Wi-Fi), `micomPower` (a restart or the power cable), and `hdmiCec` among
+  the names `tvpowerd` knows.
 
 ## Muting and pausing (webOS 5.6.2, CX)
 
