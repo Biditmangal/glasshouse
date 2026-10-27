@@ -1640,11 +1640,12 @@ item with `position: absolute` children and no in-flow height collapses to 0 px.
 CSS transitions and transforms similarly require `-webkit-transition`,
 `-webkit-transform`, and `element.style.webkitTransform` in script (#746).
 
-On webOS 4 (Chromium 53, a B8 and a C9) the reverse holds: `height: 100%` on a
-flex item inside a flexed parent counts as no height, so the TV app's row list
-collapsed to 0 px and showed nothing in 0.121.0 and 0.122.0. The height is set
-back to `auto` inside `@supports (display: flex)`, which WebKit 538.2 does not
-read.
+`height: 100%` on that flex item does not rescue it. Chromium 53 (webOS 4, a
+B8 and a C9) and WebKit 538.2 (the 55UH600V on 0.122.1) both count it as no
+height, so the TV app's row list collapsed to 0 px: on webOS 4 nothing showed
+in 0.121.0 and 0.122.0, and on webOS 2 only the right-hand explainer. The list
+now has no height of its own and is stretched to its row, and the page sets
+it in pixels where an engine still leaves it at 0.
 
 On the B8 the TV app's page, kept in memory, went on showing the old layout
 after the server was updated, until the TV restarted: it came back without the
