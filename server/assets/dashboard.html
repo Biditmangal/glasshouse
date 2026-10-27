@@ -103,6 +103,12 @@ body{font-family:'Manrope',sans-serif;color:#fff;
    A row with two is taller by one such line (TALL_VH). */
 .val .sub{display:block;font-size:2.1vh;line-height:1.2;font-weight:400;color:rgba(255,255,255,.5)}
 .row.tall{height:10.2vh}
+/* A picture setting being adjusted: its value over a bar of its range, the
+   filled part from the start, or from 0 where the range runs either side. */
+.val .bar{display:block;position:relative;width:22vw;height:.5vh;margin-top:1vh;background:rgba(255,255,255,.18);border-radius:.25vh}
+.val .bar i{position:absolute;top:0;bottom:0;background:#1ec15f;border-radius:.25vh}
+.val .bar b{position:absolute;top:50%;width:1.8vh;height:1.8vh;margin:-.9vh 0 0 -.9vh;border-radius:50%;background:#fff}
+.row.adj .val{color:#fff}
 /* Catalog rows: an icon, a version and a root badge beside the title. The
    title gives way with an ellipsis rather than pushing the state off the row. */
 .row.cat .lbl{flex:1 1 auto;-webkit-flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -404,6 +410,7 @@ var TABS = [
   { key: 'apps',    label: t('tab.apps', 'Apps'),         url: '/api/apps',        build: appsRows },
   { key: 'oled',    label: t('tab.oledCare', 'OLED Care'),    url: '/api/oledcare',    build: oledRows, optional: true },
   { key: 'game',    label: t('tab.game', 'Game'),         url: '/api/game',        build: gameRows, optional: true },
+  { key: 'picture', label: t('tab.picture', 'Picture'),      url: '/api/picture',     build: pictureRows, poll: 5000, optional: true },
   { key: 'audio',   label: t('tab.audio', 'Audio'),        url: '/api/audio?with=settings', build: audioRows, poll: 8000 },
   { key: 'saver',   label: t('tv.tab.screenSaver', 'Screen Saver'), url: '/api/screensaver', build: saverRows, optional: true },
   { key: 'home',    label: t('tab.home', 'Home'),         url: '/api/home?with=catalogue,channels,lghome', build: homeRows, optional: true },
@@ -743,7 +750,11 @@ function lgRow(g) {
   if (g.active === false) {
     var shown = g.type === 'switch' ? (g.on ? t('common.on', 'On') : t('common.off', 'Off')) : String(g.value);
     if (g.type === 'choice') for (var gc = 0; gc < g.choices.length; gc++) if (g.choices[gc].value === g.value) shown = g.choices[gc].label;
-    return { label: g.title, value: shown, hint: g.desc + ' ' + t('lgs.inactive', 'Not available with the TV’s current input or sound output.') };
+    if (g.type === 'number') shown = lgNumber(g, g.value);
+    return { label: g.title, value: shown, hint: g.desc + ' ' + (g.inactive === 'game' ? t('pic.cms.game', 'Not used in Game mode.')
+      : g.inactive === 'colourAdjustment' ? t('pic.cms.needsUser', 'Set Colour adjustment to User Selection to use these.')
+      : g.section === 'picture' ? t('lgs.pictureInactive', 'Not available in the current picture mode, or for what is on screen.')
+      : t('lgs.inactive', 'Not available with the TV’s current input or sound output.')) };
   }
   if (g.type === 'choice') {
     var at = 0;
@@ -751,6 +762,12 @@ function lgRow(g) {
     var nx = g.choices[(at + 1) % g.choices.length];
     return { label: g.title, value: g.choices[at].label, cls: 'act', act: 'lgValue', key: g.id, next: nx.value,
              press: t('tv.game.next', 'Press OK for {name}', { name: nx.label }), hint: g.desc };
+  }
+  // A picture setting is adjusted with a bar, as in LG's own menu, however
+  // wide its range (see startAdjust).
+  if (g.type === 'number' && g.section === 'picture') {
+    return { label: g.title, value: lgNumber(g, g.value), cls: 'act', act: 'lgAdjust', key: g.id, cur: g.value,
+             min: g.min, max: g.max, fmt: g.track || 'signed', press: t('tv.pic.adjust', 'Press OK to adjust'), hint: g.desc };
   }
   if (g.type === 'number') {
     if (g.max - g.min > 30) return { label: g.title, value: String(g.value), hint: g.desc, web: g.section === 'sound' ? '/?tab=audio' : '/?tab=advanced' };
@@ -1542,6 +1559,144 @@ function backRowApps() {
            hint: t('tv.backRow.apps.hint', 'Back to the Apps tab.') };
 }
 
+// A picture setting's number as LG's menu shows it: tint as R and G, colour
+// temperature as Warm and Cool, the rest either side of 0 with a sign.
+function lgNumber(g, v) {
+  if (g.min >= 0 || v === 0) return String(v);
+  var fmt = g.fmt || g.track || 'signed';
+  if (fmt === 'tint') return v < 0 ? t('lgs.tintRed', 'R{n}', { n: -v }) : t('lgs.tintGreen', 'G{n}', { n: v });
+  if (fmt === 'temperature') return v < 0 ? t('lgs.warm', 'Warm {n}', { n: -v }) : t('lgs.cool', 'Cool {n}', { n: v });
+  return v < 0 ? '−' + (-v) : '+' + v;
+}
+
+/*
+ * Adjusting a picture setting, as LG's own menu does: OK on its row starts,
+ * and the row shows a bar. Left and Right step by 1, faster the longer a key
+ * is held; Up and Down jump a tenth of the range; OK or Back finish. Outside
+ * it Left and Right always switch tabs, so a press can never land on another
+ * tab mid-change. The value goes to the TV as it changes, at most one request
+ * at a time, the last value always sent; polls leave the rows alone until the
+ * final value has gone.
+ */
+var adjusting = null;   // the row being adjusted
+var adjustPending = [];
+var adjustInFlight = false;
+var adjustHeld = 0, adjustLastKey = 0;
+
+function startAdjust() {
+  adjusting = rows[sel];
+  if (adjusting.adjustSent === undefined) adjusting.adjustSent = adjusting.cur;
+  adjustHeld = 0;
+  render();
+}
+
+function endAdjust() {
+  if (!adjusting) return;
+  var r = adjusting;
+  adjusting = null;
+  render();
+  pushAdjust(r);
+}
+
+// A held key repeats every 50-100 ms on a webOS remote; after half a second
+// held, steps grow to a twentieth of the range, so 0 to 100 takes about two.
+function adjustStep(dir, big) {
+  var r = adjusting, range = r.max - r.min, now = Date.now();
+  adjustHeld = now - adjustLastKey < 250 ? adjustHeld + 1 : 0;
+  adjustLastKey = now;
+  var step = big ? Math.max(1, Math.round(range / 10)) : adjustHeld > 6 ? Math.max(1, Math.round(range / 20)) : 1;
+  var next = Math.max(r.min, Math.min(r.max, r.cur + dir * step));
+  if (next === r.cur) return;
+  r.cur = next;
+  r.value = lgNumber(r, next);
+  drawAdjust();
+  pushAdjust(r);
+}
+
+// Only the adjusted row is redrawn: redrawing the list per step stutters on
+// the TV's browser.
+function drawAdjust() {
+  var el = document.getElementById('rows').children[sel];
+  if (!el || !adjusting) return render();
+  el.querySelector('.val').innerHTML = adjustHtml(adjusting);
+}
+
+function adjustHtml(r) {
+  var span = r.max - r.min || 1;
+  var at = (r.cur - r.min) / span * 100;
+  // A range either side of 0 fills from the centre, as LG's tint does.
+  var from = r.min < 0 && r.max > 0 ? (0 - r.min) / span * 100 : 0;
+  var left = Math.min(from, at), width = Math.abs(at - from);
+  return esc(r.value) + '<span class="bar"><i style="left:' + left + '%;width:' + width + '%"></i>' +
+    '<b style="left:' + at + '%"></b></span>';
+}
+
+function pushAdjust(r) {
+  if (r.cur !== r.adjustSent && adjustPending.indexOf(r) === -1) adjustPending.push(r);
+  if (adjustInFlight) return;
+  r = adjustPending.shift();
+  if (!r) {
+    if (!adjusting) fetchTab(true);
+    return;
+  }
+  if (r.cur === r.adjustSent) return pushAdjust(r);
+  adjustInFlight = true;
+  var value = r.cur;
+  fetch('/api/control', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'lgSetting', value: { id: r.key, value: value } })
+  }).then(function (x) { return x.json().catch(function () { return {}; }); })
+    .then(function (res) {
+      adjustInFlight = false;
+      // A refused value is not retried: the row is put right by the next read.
+      if (res && res.ok === false) {
+        flash(res.error || t('tv.failed', 'That did not work'));
+        r.adjustSent = r.cur;
+      } else r.adjustSent = value;
+      pushAdjust(r);
+    })
+    .catch(function () {
+      adjustInFlight = false;
+      r.adjustSent = r.cur;
+      flash(t('tv.failed', 'That did not work'));
+      pushAdjust(r);
+    });
+}
+
+/*
+ * The Picture tab: the picture mode, with the input and dynamic range its
+ * settings belong to, then LG's picture settings in the groups of its menu.
+ * Only the settings this TV reports come back.
+ */
+function pictureRows(d) {
+  if (!d) return [];
+  if (d.ok === false) return [{ label: t('tv.pic.readFailed', 'Picture settings unavailable'), value: '',
+    hint: t('pic.readFailed', 'The TV’s picture settings could not be read.') + (d.error ? ' ' + sentence(d.error) : '') }];
+  var r = [], ls = d.rows || [], dim = d.dimension || {};
+  var port = /^hdmi(\d)$/.exec(dim.input || '');
+  var input = port ? ((d.inputs || {})[dim.input] || 'HDMI ' + port[1])
+    : dim.input === 'default' ? t('pic.input.apps', 'apps')
+    : dim.input === 'dtv' || dim.input === 'atv' || dim.input === 'tv' ? t('pic.input.tv', 'TV channels') : (dim.input || t('pic.input.unknown', 'this input'));
+  var range = ({ sdr: 'SDR', hdr: 'HDR', hlg: 'HLG', dolbyHdr: 'Dolby Vision', technicolorHdr: 'Technicolor HDR' })[dim.dynamicRange] || dim.dynamicRange || '';
+  ls.forEach(function (g) {
+    if (g.id !== 'pictureMode') return;
+    var row = lgRow(g);
+    row.sub = range ? t('tv.pic.for', 'For {input}, in {range}', { input: input, range: range }) : t('tv.pic.forInput', 'For {input}', { input: input });
+    r.push(row);
+  });
+  ls.forEach(function (g) { if (g.group === 'mode' && g.id !== 'pictureMode') r.push(lgRow(g)); });
+  [['brightness', t('pic.brightness', 'Brightness')], ['colour', t('pic.colour', 'Colour')], ['clarity', t('pic.clarity', 'Clarity')],
+   ['motion', t('pic.motion', 'Motion')], ['aspect', t('pic.aspect', 'Aspect ratio')], ['whiteBalance', t('pic.whiteBalance', 'White balance')],
+   ['cms', t('pic.cms', 'Colour management')]].forEach(function (grp) {
+    var list = ls.filter(function (g) { return g.group === grp[0]; });
+    if (!list.length) return;
+    r.push(head(grp[1]));
+    list.forEach(function (g) { r.push(lgRow(g)); });
+  });
+  if (d.writable === false) r.forEach(function (x) { if (x.act) { delete x.act; x.cls = ''; } });
+  return r;
+}
+
 function audioDeclaration(value) {
   return value === true ? t('audio.advertised', 'Advertised') : value === false
     ? t('audio.notAdvertised', 'Not advertised') : t('audio.unknown', 'Unknown');
@@ -2233,9 +2388,9 @@ function render() {
   msg.style.display = 'none';
   box.innerHTML = rows.map(function (r, i) {
     if (r.head) return '<div class="row head"><span class="lbl">' + esc(r.label) + '</span></div>';
-    return '<div class="row' + (i === sel ? ' sel' : '') + (r.act ? ' doable' : '') + (r.cat ? ' cat' : '') + (isTall(r) ? ' tall' : '') + '" onclick="pickRow(' + i + ')">' +
+    return '<div class="row' + (i === sel ? ' sel' : '') + (r === adjusting ? ' adj' : '') + (r.act ? ' doable' : '') + (r.cat ? ' cat' : '') + (isTall(r) ? ' tall' : '') + '" onclick="pickRow(' + i + ')">' +
              '<span class="lbl">' + labelHtml(r, i) + '</span>' +
-             '<span class="val' + valClass(r) + '">' + esc(r.value) +
+             '<span class="val' + valClass(r) + '">' + (r === adjusting ? adjustHtml(r) : esc(r.value)) +
                subLines(r).map(function (line) { return '<span class="sub">' + esc(line) + '</span>'; }).join('') + '</span>' +
            '</div>';
   }).join('');
@@ -2290,7 +2445,8 @@ function renderHint() {
   warn.textContent = r.warn || '';
   warn.className = 'h-warn' + (r.warn ? ' on' : '');
   var act = document.getElementById('hintAct');
-  act.textContent = r.act ? (r.press || t('tv.press.change', 'Press OK to change')) : t('tv.viewOnly', 'View only');
+  act.textContent = r === adjusting ? t('tv.pic.adjusting', 'Left and Right to change, Up and Down for big steps, OK when done')
+    : r.act ? (r.press || t('tv.press.change', 'Press OK to change')) : t('tv.viewOnly', 'View only');
   act.className = 'h-act' + (r.act ? '' : ' ro');
   el.className = 'on';
 }
@@ -2345,6 +2501,7 @@ function lastSel() {
 }
 
 function move(d) {
+  if (adjusting) return;
   if (!rows.length) return;
   var i = sel;
   do { i += d; } while (i >= 0 && i < rows.length && rows[i].head);
@@ -2373,6 +2530,7 @@ function page(d) {
 }
 
 function pickRow(i) {
+  if (adjusting) return endAdjust();
   if (i < 0 || i >= rows.length || rows[i].head) return;
   if (sel === i && rows[i].act) activate();
   else { sel = i; render(); }
@@ -2411,6 +2569,7 @@ function fetchTab(keepSel) {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (T().key !== key || sub !== view) return; // the user moved on while this was in flight
+      if (adjusting || adjustInFlight) return; // a picture setting is being adjusted
       data[key] = d;
       rows = buildRows(section, d);
       if (initialSel !== null && initialSel < rows.length && (!rows[initialSel] || !rows[initialSel].head)) {
@@ -2441,6 +2600,7 @@ function fetchTab(keepSel) {
 }
 
 function openTab(i, keepSel) {
+  if (adjusting) endAdjust();
   if (timer) { clearInterval(timer); timer = null; }
   stopInstallPoll();
   tab = i;
@@ -2518,7 +2678,7 @@ function awaitRestart(targetVer, doneLabel) {
   }, 1500);
 }
 
-function send(body, note) {
+function send(body, note, done) {
   busy = true;
   fetch('/api/control', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2526,11 +2686,12 @@ function send(body, note) {
   }).then(function (r) { return r.json().catch(function () { return {}; }); })
     .then(function (res) {
       busy = false;
-      if (res && res.ok === false) { flash(res.error || t('tv.failed', 'That did not work')); return fetchTab(true); }
+      if (res && res.ok === false) { flash(res.error || t('tv.failed', 'That did not work')); return done ? done() : fetchTab(true); }
       if (note) flash(note);
-      fetchTab(true);
+      if (done) done();
+      else fetchTab(true);
     })
-    .catch(function () { busy = false; flash(t('tv.failed', 'That did not work')); });
+    .catch(function () { busy = false; flash(t('tv.failed', 'That did not work')); if (done) done(); });
 }
 
 function sendPost(url, body, note) {
@@ -2845,6 +3006,8 @@ function activate() {
     case 'consent':
       return send({ action: 'consent', value: { key: r.key, enabled: !r.on } },
                   r.on ? t('tv.flash.switchedOff', 'Switched off') : t('tv.flash.switchedOn', 'Switched on'));
+    case 'lgAdjust':
+      return startAdjust();
     case 'lgValue':
       return send({ action: 'lgSetting', value: { id: r.key, value: r.next } });
     case 'lgSetting':
@@ -3030,6 +3193,16 @@ document.addEventListener('keydown', function (e) {
 
   // Inside a list opened from a row, Left goes back up to it rather than to
   // another tab, and Right has nowhere to go.
+  // While a picture setting is being adjusted, every key belongs to it.
+  if (adjusting) {
+    if      (c === 37 || k === 'ArrowLeft')  adjustStep(-1);
+    else if (c === 39 || k === 'ArrowRight') adjustStep(1);
+    else if (c === 38 || k === 'ArrowUp')    adjustStep(1, true);
+    else if (c === 40 || k === 'ArrowDown')  adjustStep(-1, true);
+    else if (c === 13 || k === 'Enter' || c === 461 || k === 'GoBack' || k === 'BrowserBack') endAdjust();
+    e.preventDefault();
+    return;
+  }
   if      (c === 37 || k === 'ArrowLeft')  { if (sub) backOut(); else switchTab(-1); e.preventDefault(); }
   else if (c === 39 || k === 'ArrowRight') { if (!sub) switchTab(1); e.preventDefault(); }
   else if (c === 38 || k === 'ArrowUp')    { move(-1);      e.preventDefault(); }

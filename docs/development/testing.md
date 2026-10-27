@@ -18,6 +18,17 @@ are gone from the TV app's System tab, and a failed read leaves no stale
 readings. The web tab removes stale controls after a failed read and restores
 them after a successful retry.
 
+`test-lgsettings.js` checks that picture writes refuse hidden settings and
+inactive choices, alongside locked rows and values outside the TV's range, and
+that a TV which describes none of its picture settings is offered none, and
+that colour management follows Colour adjustment where the TV offers User
+Selection and is greyed out in Game mode.
+
+The TV dashboard check adjusts two picture sliders before the first write
+answers. Both changes must be sent, including when the first write is refused
+or its connection fails. With no picture settings offered, neither dashboard
+shows the Picture tab.
+
 [`checks.yml`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml) runs these on each pull request and each merge to main.
 
 | Check | What it catches |

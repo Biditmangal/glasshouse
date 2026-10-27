@@ -1596,6 +1596,19 @@ function handleRequest(req, res) {
     });
   }
 
+  /*
+   * The Picture tabs: LG's picture settings for the picture on screen, and the
+   * input, picture mode and dynamic range they belong to. Read fresh enough to
+   * follow a change made with the remote while the tab is open.
+   */
+  if (pathname === '/api/picture') {
+    return lgSettingsModule.collect('picture', function (r) {
+      // available false where the TV offers none: both dashboards then leave the tab out.
+      send(res, 200, JSON.stringify({ ok: true, available: r.rows.length > 0, writable: !!config.allowControl, rows: r.rows,
+        dimension: r.dimensions.picture || null, inputs: telemetryModule.inputNameMap }));
+    }, 4000);
+  }
+
   // Rows of lgsettings.js for the dashboards: ?section=sound,devices.
   if (pathname === '/api/lgsettings') {
     var secs = String(u.query.section || '').split(',').filter(Boolean);

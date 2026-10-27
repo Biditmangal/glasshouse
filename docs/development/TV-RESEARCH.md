@@ -98,6 +98,67 @@ that answers `no result from DB`.
 `luna://com.webos.service.capture/executeOneShot` with `method: DISPLAY`
 writes a PNG of the screen, web apps included, at the size asked for.
 
+## LG's picture settings (G3, webOS 9.2.2)
+
+`getSystemSettings {category: 'picture'}` without a dimension answers the
+picture on screen, with `dimension: {pictureMode, dynamicRange, input}`, and
+`setSystemSettings` without one writes there; LG's Settings app
+(`com.palm.app.settings`, `main.js`) does the same. With Home on screen the
+input is `default`. `getSystemSettingDesc` describes a number as
+`values.range: {min, max, interval}` (webOS 4's rows used `values.min` and
+`max`), a choice as `values.arrayExt`, each value with `visible` and `active`,
+and the key itself with `ui.visible` and `ui.active`. A list of keys some of
+which have no description answers `returnValue: false` with the others in
+`results`.
+
+LG's app hides a setting whose `ui.visible` is false and greys one whose
+`ui.active` is false, and the G3's own menu matched the flags: in Cinema and
+Filmmaker, with Home on screen, Gamma, Colour Temperature and Colour Gamut
+were inactive in both. Dynamic Tone Mapping, Expression Enhancer, Local
+Dimming and Precision Detail were not visible.
+
+Each write from LG's app also sets `pictureSettingModified`, a map of picture
+mode to true, for the mode on screen when it is not already true; LG's menu
+then shows the mode as "Cinema (User Settings)" and offers Reset.
+
+`blackLevel` (Video Range: `low` Limited, `high` Full, `auto`) is a string on
+an HDMI input and, for `default`, an object with a value per colour system
+(`ntsc`, `pal` and others). `colorTemperature` is -50 (Warm 50) to 50 (Cool
+50) and `tint` -50 (R50) to 50 (G50). `skinColor`, `skyColor` and
+`grassColor` are stored as text, -5 to 5.
+
+A picture mode never adjusted answers its numbers as text (`contrast: '95'`
+in Standard); one adjusted from LG's menu, as numbers. Keys the TV keeps but
+does not describe, such as `edgeEnhancer`, `hSharpness` and `xvycc`, are not
+in its menu, and a write to `edgeEnhancer` answered `ERROR!! sending a request
+to DB`.
+
+On this European G3, setting `energySaving` to any step but `auto`, from
+outside LG's menu, put LG's "may increase energy consumption of this TV"
+prompt on screen. The new value held while the prompt waited (a minute and
+more), OK kept it, and Cancel set `auto`. No other picture setting raised it.
+
+Aspect ratio, Just Scan and TruMotion are kept for each app, an HDMI input
+included (`com.webos.app.hdmi4`). LG's app reads them with the foreground app:
+`{category: 'aspectRatio', app_id, keys: ['arcPerApp', 'justScan']}` and
+`{category: 'picture', app_id, keys: ['truMotionMode']}`, and writes them with
+`current_app: true`. Asked without `app_id`, `aspectRatio` answered only
+`arcMenuBySystem` and `truMotionMode` was an `errorKey`. On HDMI 4 the TV
+offered aspect ratios 16:9, Original, 4:3, Vertical Zoom and 4-Way Zoom, and
+TruMotion Off, Cinematic Movement, Natural, Smooth Movement and User
+Selection. `picture.aspectRatio` reads `16x9` with Home on screen while LG's
+menu shows Original, greyed; it is not what the menu uses.
+
+On a C2 (webOS 9.2.2), `dynamicColor` offers `off`, `low`, `medium`, `high`
+and `user`, and LG's menu calls it Colour adjustment, under Fine Tune. The
+`colorManagement{Saturation,Hue,Luminance}{Colour}` keys, -30 to 30, are kept
+for each input and mode, and LG's menu shows them, for the colour picked in
+`colorManagementColorSystem`, only under User Selection. In Game mode the TV
+describes them as visible and active and keeps written values, yet green at
++30 on all three changed nothing on screen with User Selection on; in ISF
+Expert the same adjustment did. A B8 (webOS 4.4.3) offers `dynamicColor` only
+`off` to `high`.
+
 ## The TV's 12 or 24 hour clock (webOS 4.4, 7.6, 9.2)
 
 `com.webos.service.systemservice/getPreferences` with `keys: ["timeFormat"]`
