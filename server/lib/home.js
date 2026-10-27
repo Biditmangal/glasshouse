@@ -113,6 +113,18 @@ var HOLD_MS = 1200;
  * to 13 s on a CX (webOS 5.6.2), so there the wait runs to the first beat's.
  */
 var OPEN_GRACE_MS = 5000;
+// Written by the boot hook when it opens the view; /tmp is empty at each boot.
+var BOOT_OPENED_FILE = '/tmp/glasshouse-home-opened-at-boot';
+var bootOpenedFile = BOOT_OPENED_FILE;
+/*
+ * Opened at boot or after a wake: the page that loads the view asks every
+ * 0.6 s whether the server is up, so none in 20 s means it never ran. Once it
+ * has, a slow TV's first load is waited for.
+ */
+var PAGE_SIGN_MS = 20000;
+var PAGE_LOAD_MS = 90000;
+var pageSignMs = PAGE_SIGN_MS, pageLoadMs = PAGE_LOAD_MS;
+var pageSeenAt = 0;
 var slowOpenMs = FIRST_BEAT_GRACE_MS;
 /*
  * WebAppMgr runs every web app, the view among them. On a G4 (webOS 11.2.0) it
@@ -1585,7 +1597,8 @@ function powerStateChanged(raw) {
         cancelWake();
         console.log('home: opening Glasshouse Home over ' + foreground + ' after a wake by ' + reason);
         launch(LG_HOME, null, function (res) {
-          if (!res.ok) console.error('home: could not open Glasshouse Home after the wake');
+          if (!res.ok) return console.error('home: could not open Glasshouse Home after the wake');
+          watchStart('after the wake', beats, nowMs());
         });
       });
     });
@@ -1667,6 +1680,10 @@ function init(opts) {
   installFn = opts.installApp || null;
   procDir = opts.procDir || '/proc';
   slowOpenMs = typeof opts.slowOpenMs === 'number' ? opts.slowOpenMs : FIRST_BEAT_GRACE_MS;
+  bootOpenedFile = opts.bootOpenedFile || BOOT_OPENED_FILE;
+  pageSignMs = opts.pageSignMs || PAGE_SIGN_MS;
+  pageLoadMs = opts.pageLoadMs || PAGE_LOAD_MS;
+  pageSeenAt = 0;
   execFn = opts.exec || execFile;
   systemctlPath = opts.systemctl !== undefined ? opts.systemctl
     : SYSTEMCTLS.filter(function (p) { return fs.existsSync(p); })[0] || '';
@@ -1767,9 +1784,49 @@ function start() {
     switchTo(true, function (r) {
       if (!r.ok) console.error('home: could not take LG\'s Home\'s place: ' + r.error);
       syncLgAutoLaunch();
+      if (r.ok) watchBootOpen();
     });
   });
 }
+
+/*
+ * The boot hook opened the view before this server started (50-tvweb.sh). Its
+ * page waits for the server before loading the view, so the wait starts here,
+ * and the page's probes and beats since this server started count.
+ */
+function watchBootOpen() {
+  try { fs.unlinkSync(bootOpenedFile); } catch (e) { return; }
+  watchStart('at boot', 0, 0);
+}
+
+/*
+ * The view opened by the boot hook or after a wake (#1042: a G3 on webOS
+ * 11.2.0 stayed on its HDMI input after a launch sam accepted). A cold start
+ * can be slow, so the page's own probes for the server (pageAlive) say it is
+ * running: then it has PAGE_LOAD_MS to beat. With no probe or beat in
+ * PAGE_SIGN_MS nothing ran, and WebAppMgr is started or LG's Home given the
+ * place. Something else opened meanwhile, other than the input it was opened
+ * over, ends the watch.
+ */
+function watchStart(when, beatsBefore, signSince) {
+  stopOpenWatch();
+  var since = nowMs(), over = foreground;
+  function check() {
+    openTimer = setTimeout(function () {
+      openTimer = null;
+      var waited = nowMs() - since, alive = pageSeenAt > 0 && pageSeenAt >= signSince;
+      if (beats > beatsBefore) return console.log('home: the view answered ' + Math.round(waited / 1000) + ' s after opening ' + when);
+      if (escaped || !powerActive || !readConfig().enabled) return;
+      if (foreground && foreground !== LG_HOME && foreground !== over && !(over === '' && isInputApp(foreground))) return;
+      if (waited < (alive ? pageLoadMs : pageSignMs)) return check();
+      recoverView(alive ? 'Glasshouse Home loaded but did not answer ' + when : 'Glasshouse Home did not run ' + when, false);
+    }, 1000);
+  }
+  check();
+}
+
+// The page Glasshouse Home opens as asking whether the server is up.
+function pageAlive() { pageSeenAt = nowMs(); }
 
 function stop() {
   cancelWake();
@@ -1810,6 +1867,7 @@ module.exports = {
   disable: function (cb) { change(function (done) { disable(function (r) { homeKeysFn(false); done(r); }); }, cb); },
   uninstall: function (cb) { change(uninstall, cb); },
   beat: beat,
+  pageAlive: pageAlive,
   layoutVersion: layoutVersion,
   homeKey: homeKey,
   iconPath: iconPath,
