@@ -173,6 +173,14 @@ Measured on 17 October 2026 by rebooting over SSH with `lastInputApp` naming `co
 - Home pressed (over SSAP) at about 37 s brought LG's Home to the front: drawn in one run, black for about 6 s in another. The compositor key filter that sends Home to `com.tvweb.home` from the server's start onwards had not done so.
 - `/var/log` holds CRIU dump and restore logs for `com.webos.app.home` and `com.webos.app.inputcommon`, so those two are restored from snapshots at boot; whether that is why the started app is not drawn is not established.
 
+### What the boot hooks wait for (50QNED87T6B, webOS 10.2.2)
+
+Measured from bootd's log and each process's start time in `/proc/<pid>/stat`:
+
+- bootd signals `core-boot-done` at 16.1 s and Live TV is in front at 18 s, but the Homebrew Channel's service, which its `core-boot-done` activity starts, was started only at 27.5 s, and its `startup.sh` at about 29 s. It sleeps 2 s, then runs `init.d` with `run-parts`, one hook after the other.
+- `20-tvweb-services` took 7.2 s, almost all of it `systemctl daemon-reload`. With another hook that sleeps 5 s before its own work, `50-tvweb` started at about 50 s and Glasshouse Home was in front at 53.5 s.
+- With both hooks doing their work in the background, `50-tvweb` started at 32 s, Glasshouse Home was in place at 35 s, and bootd had it in front at 43.7 s.
+
 ## Replacing LG's Home under its id (webOS 9.2.2, G3)
 
 Measured on 17 October 2026 on an OLED55G36LA with a web app's directory
