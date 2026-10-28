@@ -2386,5 +2386,6 @@
  "tv.pic.adjusting": {"text": "Sinistra e destra per cambiare, su e giù per passi grandi, OK per finire", "from": "Left and Right to change, Up and Down for big steps, OK when done"},
  "tv.pic.for": {"text": "Per {input}, in {range}", "from": "For {input}, in {range}"},
  "tv.pic.forInput": {"text": "Per {input}", "from": "For {input}"},
- "tv.pic.readFailed": {"text": "Impostazioni dell'immagine non disponibili", "from": "Picture settings unavailable"}
+ "tv.pic.readFailed": {"text": "Impostazioni dell'immagine non disponibili", "from": "Picture settings unavailable"},
+ "apps.remoteKeys.replacesVoice": {"text": "Impostato su qualsiasi altra cosa, questo tasto non avvia più il controllo vocale. «Come da LG» lo ripristina.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
 }

@@ -2310,5 +2310,6 @@
  "home.wall.setLandscape": {"text": "Paisaje", "from": "Landscape"},
  "home.wall.setOwn": {"text": "Las tuyas", "from": "Your own"},
  "home.wall.tvHintSets": {"text": "Paisaje y Abstracto se descargan al televisor al elegirlos. Tus propias imágenes se suben en la pestaña Inicio del panel del navegador.", "from": "Landscape and Abstract are downloaded to the TV when chosen. Your own pictures are uploaded on the browser dashboard’s Home tab."},
- "srv.home.wallChoice": {"text": "elección de fondo desconocida", "from": "unknown wallpaper choice"}
+ "srv.home.wallChoice": {"text": "elección de fondo desconocida", "from": "unknown wallpaper choice"},
+ "apps.remoteKeys.replacesVoice": {"text": "Con cualquier otra opción, este botón ya no inicia el control por voz. «Como lo tiene LG» lo recupera.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
 }

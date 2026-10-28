@@ -2386,5 +2386,6 @@
  "home.wall.setLandscape": {"text": "Táj", "from": "Landscape"},
  "home.wall.setOwn": {"text": "Saját", "from": "Your own"},
  "home.wall.tvHintSets": {"text": "A Táj és az Absztrakt kiválasztáskor töltődik le a TV-re. A saját képeket a böngészős vezérlőpult Kezdőlap lapján lehet feltölteni.", "from": "Landscape and Abstract are downloaded to the TV when chosen. Your own pictures are uploaded on the browser dashboard’s Home tab."},
- "srv.home.wallChoice": {"text": "ismeretlen háttérkép-választás", "from": "unknown wallpaper choice"}
+ "srv.home.wallChoice": {"text": "ismeretlen háttérkép-választás", "from": "unknown wallpaper choice"},
+ "apps.remoteKeys.replacesVoice": {"text": "Bármi másra állítva ez a gomb már nem indítja a hangvezérlést. Az „Ahogy az LG beállította” visszahozza.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
 }

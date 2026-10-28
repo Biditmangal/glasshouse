@@ -2386,5 +2386,6 @@
  "home.wall.setLandscape": {"text": "Пейзаж", "from": "Landscape"},
  "home.wall.setOwn": {"text": "Свои", "from": "Your own"},
  "home.wall.tvHintSets": {"text": "«Пейзаж» и «Абстракция» загружаются на телевизор при выборе. Свои картинки загружаются на вкладке «Главная» панели в браузере.", "from": "Landscape and Abstract are downloaded to the TV when chosen. Your own pictures are uploaded on the browser dashboard’s Home tab."},
- "srv.home.wallChoice": {"text": "неизвестный выбор обоев", "from": "unknown wallpaper choice"}
+ "srv.home.wallChoice": {"text": "неизвестный выбор обоев", "from": "unknown wallpaper choice"},
+ "apps.remoteKeys.replacesVoice": {"text": "При любом другом значении эта кнопка больше не запускает голосовое управление. «Как задано в LG» возвращает его.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
 }

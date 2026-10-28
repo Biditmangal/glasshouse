@@ -889,12 +889,9 @@ app in front. Remote Keys puts its own filter first.
   assistant's app on a press, while the microphone button
   (`Key_webOS_Voice`, RF 436) goes to voice control. The same file names about
   20 regional streaming buttons (Hotstar, Stan, Wavve, U-Next, TVer and others).
-- **The voice assistants' buttons are ordinary hotkeys.** On a C2 (webOS 9.2.2)
-  `appLaunch.js` handles `Key_webOS_ALEXA` (IR 1094) and
-  `Key_webOS_GoogleVoice` (IR 1125) like the streaming buttons, launching the
-  assistant's app on a press, while the microphone button
-  (`Key_webOS_Voice`, RF 436) goes to voice control. The same file names about
-  20 regional streaming buttons (Hotstar, Stan, Wavve, U-Next, TVer and others).
+  On a CX (webOS 5.5), the microphone button set to an app through the filter
+  opened it on a press and on a hold alike, and set back to LG's own it started
+  voice control again (#1034).
 - **Filters get the compositor's timers.** `StarfishKeyFilter.qml` hands every
   filter `genericTimer` (`set(ms, callback)`, `cancel`, `isRunning`), as LG's
   `appLaunch.js` uses it. On a change to the key it cancels every
