@@ -1058,6 +1058,31 @@ and others' work on webOS 10
   Mounted from a webosbrew `init.d` hook, the home app was running with the
   changed layout about 29 s after power-on.
 
+## The apps' recommendations (50QNED87T6B, webOS 10.2.2)
+
+- **The cards come from the apps, not LG's servers.** Netflix, Prime Video,
+  Disney+, HBO Max and YouTube each give the application manager a list of
+  titles. `luna://com.webos.service.applicationmanager/getAllContents` with
+  `{}` answers with all of them, read on the TV: `allContents`, one entry per
+  launch point (`netflix_default`), each with `contents`. A `type: 'title'`
+  entry heads each list and is empty; the cards are `type: 'content'` with
+  `titleText`, `category` (Netflix: "Continue watching for …", "Top picks
+  for you today"), `image.url` (480 x 270, on the app's own servers) and
+  `onClick: { targetAppId, contentId, launchParam }`. 70 cards across the five
+  apps on this TV; the browser's list was empty.
+- **LG's Home reads them as its `NowStreamingProvider`.** `libapp.so` names
+  `applicationmanager/getAllContents` there, and `applicationManager/getContents`
+  (which refuses `{}` as invalid parameters). The `recommendedShelf` itself is
+  LG's: `[SDP Shelf Data]` and `[ContentMinorShelf]` ask
+  `com.webos.service.admanager/requestBannerInfoWithoutContextIndex` and
+  `com.webos.service.sdx`.
+- **A card opens through `contentTarget`.** `contentId` is the app's
+  `contentTarget` launch parameter, the convention `libapp.so` names beside
+  `targetAppId`. Each card also has an `onShow` (`{ method: 'invoke', service:
+  'amazon.service', contentId }`) that tells the app it was seen.
+- `com.webos.service.discovery/getRecommendationData` and
+  `com.webos.service.prs/listRecommendations` gave no answer within 10 s.
+
 ## What the player is doing (webOS 4.4.3, B8; webOS 9.2.2, C2)
 
 - The B8 answers `com.webos.service.acb/getForegroundAppInfo` with an `acbs`

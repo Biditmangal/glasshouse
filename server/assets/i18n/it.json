@@ -2387,5 +2387,16 @@
  "tv.pic.for": {"text": "Per {input}, in {range}", "from": "For {input}, in {range}"},
  "tv.pic.forInput": {"text": "Per {input}", "from": "For {input}"},
  "tv.pic.readFailed": {"text": "Impostazioni dell'immagine non disponibili", "from": "Picture settings unavailable"},
- "apps.remoteKeys.replacesVoice": {"text": "Impostato su qualsiasi altra cosa, questo tasto non avvia più il controllo vocale. «Come da LG» lo ripristina.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
+ "apps.remoteKeys.replacesVoice": {"text": "Impostato su qualsiasi altra cosa, questo tasto non avvia più il controllo vocale. «Come da LG» lo ripristina.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."},
+ "home.recCount": {"text": "{n} su Glasshouse Home ora", "from": "{n} on Glasshouse Home now"},
+ "home.recNone": {"text": "Nessuna app di questa TV propone ancora titoli.", "from": "None of this TV’s apps list any yet."},
+ "home.recUnavailable": {"text": "Questa TV non ha elencato alcun consiglio.", "from": "This TV did not list any recommendations."},
+ "home.recommended": {"text": "Mostra i consigli delle app", "from": "Show the apps’ recommendations"},
+ "home.recommendedDesc": {"text": "I titoli che Netflix, Prime Video, Disney+, HBO Max, YouTube e altre app mettono nella Home di LG, come Continua a guardare, in una riga di schede. OK apre l'app su quel titolo. Un'app nascosta dalla riga App non ne mostra nessuno.", "from": "The titles Netflix, Prime Video, Disney+, HBO Max, YouTube and other apps put on LG’s Home, such as Continue watching, as a row of cards. OK opens the app at the title. An app hidden from the Apps row shows none."},
+ "home.recommendedPrivacy": {"text": "Le immagini delle schede vengono caricate dai server di ciascuna app, come nella Home di LG.", "from": "The cards’ pictures are loaded from each app’s own servers, as on LG’s Home."},
+ "home.row.recArrange": {"text": "I titoli proposti dalle tue app, nell'ordine della riga App", "from": "Your apps’ picks, in the Apps row’s order"},
+ "home.row.recFrom": {"text": "Da {app}", "from": "From {app}"},
+ "home.row.recOff": {"text": "Attivala nelle impostazioni Home di Glasshouse", "from": "Switch on in Glasshouse’s Home settings"},
+ "home.row.recommended": {"text": "Consigliati", "from": "Recommended"},
+ "srv.home.recommendedUnavailable": {"text": "la TV non ha elencato i consigli delle sue app", "from": "the TV did not list its apps’ recommendations"}
 }

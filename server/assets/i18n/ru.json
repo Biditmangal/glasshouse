@@ -2387,5 +2387,16 @@
  "home.wall.setOwn": {"text": "Свои", "from": "Your own"},
  "home.wall.tvHintSets": {"text": "«Пейзаж» и «Абстракция» загружаются на телевизор при выборе. Свои картинки загружаются на вкладке «Главная» панели в браузере.", "from": "Landscape and Abstract are downloaded to the TV when chosen. Your own pictures are uploaded on the browser dashboard’s Home tab."},
  "srv.home.wallChoice": {"text": "неизвестный выбор обоев", "from": "unknown wallpaper choice"},
- "apps.remoteKeys.replacesVoice": {"text": "При любом другом значении эта кнопка больше не запускает голосовое управление. «Как задано в LG» возвращает его.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
+ "apps.remoteKeys.replacesVoice": {"text": "При любом другом значении эта кнопка больше не запускает голосовое управление. «Как задано в LG» возвращает его.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."},
+ "home.recCount": {"text": "Сейчас на Glasshouse Home: {n}", "from": "{n} on Glasshouse Home now"},
+ "home.recNone": {"text": "Ни одно приложение на этом телевизоре пока ничего не предлагает.", "from": "None of this TV’s apps list any yet."},
+ "home.recUnavailable": {"text": "Телевизор не выдал никаких рекомендаций.", "from": "This TV did not list any recommendations."},
+ "home.recommended": {"text": "Показывать рекомендации приложений", "from": "Show the apps’ recommendations"},
+ "home.recommendedDesc": {"text": "Названия, которые Netflix, Prime Video, Disney+, HBO Max, YouTube и другие приложения выводят на главный экран LG, например «Продолжить просмотр», в виде ряда карточек. OK открывает приложение на этом названии. Приложение, скрытое в ряду «Приложения», карточек не показывает.", "from": "The titles Netflix, Prime Video, Disney+, HBO Max, YouTube and other apps put on LG’s Home, such as Continue watching, as a row of cards. OK opens the app at the title. An app hidden from the Apps row shows none."},
+ "home.recommendedPrivacy": {"text": "Изображения карточек загружаются с серверов каждого приложения, как на главном экране LG.", "from": "The cards’ pictures are loaded from each app’s own servers, as on LG’s Home."},
+ "home.row.recArrange": {"text": "Подборки ваших приложений в порядке ряда «Приложения»", "from": "Your apps’ picks, in the Apps row’s order"},
+ "home.row.recFrom": {"text": "Из {app}", "from": "From {app}"},
+ "home.row.recOff": {"text": "Включите в настройках главного экрана Glasshouse", "from": "Switch on in Glasshouse’s Home settings"},
+ "home.row.recommended": {"text": "Рекомендуемое", "from": "Recommended"},
+ "srv.home.recommendedUnavailable": {"text": "телевизор не выдал рекомендации своих приложений", "from": "the TV did not list its apps’ recommendations"}
 }

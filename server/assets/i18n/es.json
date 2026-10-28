@@ -2311,5 +2311,16 @@
  "home.wall.setOwn": {"text": "Las tuyas", "from": "Your own"},
  "home.wall.tvHintSets": {"text": "Paisaje y Abstracto se descargan al televisor al elegirlos. Tus propias imágenes se suben en la pestaña Inicio del panel del navegador.", "from": "Landscape and Abstract are downloaded to the TV when chosen. Your own pictures are uploaded on the browser dashboard’s Home tab."},
  "srv.home.wallChoice": {"text": "elección de fondo desconocida", "from": "unknown wallpaper choice"},
- "apps.remoteKeys.replacesVoice": {"text": "Con cualquier otra opción, este botón ya no inicia el control por voz. «Como lo tiene LG» lo recupera.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."}
+ "apps.remoteKeys.replacesVoice": {"text": "Con cualquier otra opción, este botón ya no inicia el control por voz. «Como lo tiene LG» lo recupera.", "from": "Set to anything else, this button no longer starts voice control. As LG has it brings it back."},
+ "home.recCount": {"text": "{n} en Glasshouse Home ahora", "from": "{n} on Glasshouse Home now"},
+ "home.recNone": {"text": "Ninguna app de esta TV ofrece recomendaciones todavía.", "from": "None of this TV’s apps list any yet."},
+ "home.recUnavailable": {"text": "Esta TV no ofreció ninguna recomendación.", "from": "This TV did not list any recommendations."},
+ "home.recommended": {"text": "Mostrar las recomendaciones de las apps", "from": "Show the apps’ recommendations"},
+ "home.recommendedDesc": {"text": "Los títulos que Netflix, Prime Video, Disney+, HBO Max, YouTube y otras apps ponen en la pantalla de inicio de LG, como Seguir viendo, en una fila de tarjetas. OK abre la app en ese título. Una app oculta en la fila Apps no muestra ninguna.", "from": "The titles Netflix, Prime Video, Disney+, HBO Max, YouTube and other apps put on LG’s Home, such as Continue watching, as a row of cards. OK opens the app at the title. An app hidden from the Apps row shows none."},
+ "home.recommendedPrivacy": {"text": "Las imágenes de las tarjetas se cargan desde los servidores de cada app, como en la pantalla de inicio de LG.", "from": "The cards’ pictures are loaded from each app’s own servers, as on LG’s Home."},
+ "home.row.recArrange": {"text": "Lo que proponen tus apps, en el orden de la fila Apps", "from": "Your apps’ picks, in the Apps row’s order"},
+ "home.row.recFrom": {"text": "De {app}", "from": "From {app}"},
+ "home.row.recOff": {"text": "Actívala en los ajustes de inicio de Glasshouse", "from": "Switch on in Glasshouse’s Home settings"},
+ "home.row.recommended": {"text": "Recomendado", "from": "Recommended"},
+ "srv.home.recommendedUnavailable": {"text": "la TV no ofreció las recomendaciones de sus apps", "from": "the TV did not list its apps’ recommendations"}
 }

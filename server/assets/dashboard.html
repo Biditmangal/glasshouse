@@ -1156,7 +1156,8 @@ function glasshouseHomeRows(d) {
   var c = d.catalogue, lay = d.layout;
   if (c && lay) {
     r.push(head(t('tv.home.rowOrder', 'Row order')));
-    var names = { app: t('home.row.apps', 'Apps'), dev: t('home.row.inputs', 'Inputs'), ch: t('home.row.channels', 'Channels') };
+    var names = { app: t('home.row.apps', 'Apps'), dev: t('home.row.inputs', 'Inputs'), ch: t('home.row.channels', 'Channels'),
+                  rec: t('home.row.recommended', 'Recommended') };
     lay.rows.forEach(function (kind, i) {
       r.push({ label: names[kind], value: t('tv.home.rowPlace', '{n} of {total}', { n: i + 1, total: lay.rows.length }), cls: 'act',
                act: can && i > 0 ? 'homeRowUp' : null, key: kind,
@@ -1190,6 +1191,18 @@ function glasshouseHomeRows(d) {
                  act: hasChannels ? 'open' : null, key: 'homeChannels',
                  press: hasChannels ? t('tv.home.ch.press', 'Press OK to choose') : t('home.ch.none', 'This TV has no channels tuned, so the Channels row stays empty.'),
                  hint: t('tv.home.ch.hint', 'From the TV\u2019s own channel list. Each one added goes on the end of the Channels row.') });
+        return;
+      }
+      // The apps' cards come and go with their lists: the row has its switch, not tiles.
+      if (kind === 'rec') {
+        var recOn = lay.recommended === true;
+        r.push(head(names.rec));
+        r.push({ label: t('home.recommended', 'Show the apps’ recommendations'),
+                 value: recOn ? t('common.on', 'On') : t('common.off', 'Off'), cls: recOn ? 'on' : 'off',
+                 act: can ? 'homeRecommended' : null, on: recOn,
+                 press: recOn ? t('tv.press.switchOff', 'Press OK to switch off') : t('tv.press.switchOn', 'Press OK to switch on'),
+                 hint: t('home.recommendedDesc', 'The titles Netflix, Prime Video, Disney+, HBO Max, YouTube and other apps put on LG’s Home, such as Continue watching, as a row of cards. OK opens the app at the title. An app hidden from the Apps row shows none.'),
+                 warn: t('home.recommendedPrivacy', 'The cards’ pictures are loaded from each app’s own servers, as on LG’s Home.') });
         return;
       }
       if (!order.length) return;
@@ -2863,6 +2876,8 @@ function activate() {
       return homeLayout({ view: r.on ? 'standard' : 'alternative' });
     case 'homeFade':
       return homeLayout({ fade: !r.on });
+    case 'homeRecommended':
+      return homeLayout({ recommended: !r.on });
     case 'homeHideUnused':
       return homeLayout({ hideUnused: !r.on });
     case 'homeColours':
