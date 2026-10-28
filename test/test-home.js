@@ -1224,6 +1224,44 @@ step('where WebAppMgr will not start, a short Home press that brings no heartbea
   });
 });
 
+// On a C2 (webOS 9.2.2) an input chosen 2 s after a press, before the view's
+// first beat, had LG's Home open over it.
+step('a short Home press, then an input opened from the view before its first beat, keeps Glasshouse Home', function (done) {
+  start({ enabled: true }, { systemctl: '/bin/systemctl', slowOpenMs: 7000 });
+  home.start();
+  wait(50, function () {
+    foreground('com.webos.app.hdmi2');
+    home.homeKey(true);
+    home.homeKey(false);
+    foreground(LG_HOME);
+    home.open({ kind: 'dev', id: 'hdmi2:playstation-5' }, function () {
+      foreground('com.webos.app.hdmi2');
+      wait(7200, function () {
+        assert.ok(taken(), 'Glasshouse Home keeps the place');
+        assert.strictEqual(tv.samType, 'web');
+        home.disable(function () { done(); });
+      });
+    });
+  });
+});
+
+step('a short Home press, then something else opened with no view behind it, still keeps the input', function (done) {
+  start({ enabled: true }, { systemctl: '/bin/systemctl', slowOpenMs: 7000 });
+  home.start();
+  wait(50, function () {
+    foreground('com.webos.app.hdmi1');
+    home.homeKey(true);
+    home.homeKey(false);
+    wait(1000, function () {
+      foreground('com.webos.app.hdmi2');
+      wait(7200, function () {
+        assert.ok(taken(), 'the input chosen is left in front');
+        home.disable(function () { done(); });
+      });
+    });
+  });
+});
+
 step('a short Home press the view answers with a heartbeat changes nothing', function (done) {
   start({ enabled: true }, { systemctl: '/bin/systemctl' });
   home.start();
