@@ -969,6 +969,15 @@ app in front. Remote Keys puts its own filter first.
   `/mnt/lg/cmn_data/var/preferences/configd_factory_db.json`, kept across
   reboots. There is no delete method, and setting `null` is ignored.
 
+## The microphone and Google Assistant on the evdev device (C2, webOS 9.2.2)
+
+Read on 28 October 2026 for #1088, with an MR22 Magic Remote. Both buttons
+arrive on the remote's own input device (`LGE M-RCU - Builtin [0]`) as key
+codes 428 (the microphone) and 1117 (Google Assistant), LG's xkb codes 436 and
+1125 less 8, while `lginput2` logs `KEY_VOICE` and `KEY_GOOGLEVOICE`. A C9 on
+webOS 4.10.2 reports 428 for the microphone too. With either set in Remote keys,
+the compositor's filter keeps the press from LG and the device still delivers it.
+
 ## Native key filters (C5, webOS 11.2.0)
 
 - **No JavaScript filters.** `surface-manager` runs on Weston

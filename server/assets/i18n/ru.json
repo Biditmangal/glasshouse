@@ -2412,5 +2412,8 @@
  "ctl.keyboard.enter": {"text": "Ввод", "from": "Enter"},
  "ctl.keyboard.hint": {"text": "Сначала выберите текстовое поле на телевизоре, например поиск или веб-адрес. Набранное здесь попадает туда по мере ввода, включая удаление, а «Ввод» отправляет текст.", "from": "Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it."},
  "ctl.keyboard.up": {"text": "Клавиатура LG открыта на телевизоре: набранное здесь попадает в её поле по мере ввода, включая удаление, а «Ввод» отправляет текст.", "from": "LG’s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it."},
- "ctl.keyboard.down": {"text": "Клавиатура LG не открыта на телевизоре. Сначала выберите там текстовое поле, например поиск или веб-адрес. Некоторые приложения используют свою клавиатуру.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."}
+ "ctl.keyboard.down": {"text": "Клавиатура LG не открыта на телевизоре. Сначала выберите там текстовое поле, например поиск или веб-адрес. Некоторые приложения используют свою клавиатуру.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."},
+ "srv.remoteKeys.homeAssistant": {"text": "Home Assistant", "from": "Home Assistant"},
+ "apps.remoteKeys.toHomeAssistant": {"text": "В Home Assistant", "from": "To Home Assistant"},
+ "srv.remoteKeys.notReported": {"text": "Home Assistant не получает нажатия этой кнопки", "from": "Home Assistant does not receive this key's presses"}
 }

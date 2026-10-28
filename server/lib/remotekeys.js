@@ -130,6 +130,14 @@ var MEDIA_REPEATS = { volumeUp: true, volumeDown: true };
  * TV had woken.
  */
 var SCREEN_OFF = 'action:screenOff';
+/*
+ * Home Assistant: the key does nothing on the TV, and its press reaches Home
+ * Assistant as a Remote Button event, which lib/remotebuttons reads from the
+ * remote's own device whatever the filter does (#1088). Offered for the keys
+ * that are reported, where MQTT is on.
+ */
+var HOME_ASSISTANT = 'action:homeAssistant';
+var reportedButtons = require('./remotebuttons').buttonNames;
 
 // webOS 11's native key filters; see the header.
 var NATIVE_FILTERS_KEY = 'com.webos.surfacemanager.keyFiltersCpp';
@@ -225,6 +233,8 @@ var switcherFound = null; // whether the TV has INPUT_SWITCHER, once answered
 var SubscriptionCtor = null; // luna.Subscription, to follow LG's settings
 /** @type {typeof import('./services') | null} */
 var servicesModule = null;  // to switch LG's voice assistant off and on
+// Whether MQTT is on, for the Home Assistant choice.
+var homeAssistantOn = function () { return false; };
 var messagesPath = MESSAGES_LOG;
 var reapplyDelayMs = 1000;
 
@@ -243,6 +253,7 @@ function init(opts) {
   followPresses({});
   if (toastsTimer) { clearTimeout(toastsTimer); toastsTimer = null; }
   servicesModule = opts.services || null;
+  homeAssistantOn = opts.homeAssistant || function () { return false; };
   messagesPath = opts.messagesPath || MESSAGES_LOG;
   if (typeof opts.reapplyDelayMs === 'number') reapplyDelayMs = opts.reapplyDelayMs;
   muteToastsMs = opts.muteToastsMs || 0;
@@ -475,6 +486,8 @@ function filterSource() {
     '                if (!autoRepeat) console.info("glasshouse keyfilter: key", key, "sends", id);',
     '                glasshouseMedia(media);',
     '            }',
+    '        } else if (id === ' + JSON.stringify(HOME_ASSISTANT) + ') {',
+    '            // Nothing on the TV: Glasshouse reads the press from the remote itself.',
     '        } else if (id === ' + JSON.stringify(SCREEN_OFF) + ') {',
     '            if (!pressed && glasshouseScreenOffArmed) console.info("glasshouse keyfilter: key", key, "turns the screen off");',
     '            glasshouseScreenOffKey(pressed, autoRepeat);',
@@ -1174,9 +1187,16 @@ function mediaChoices() {
   return MEDIA_ACTIONS.map(function (a) { return { id: MEDIA_PREFIX + a, title: titles[a], kind: 'media' }; });
 }
 
-// Screen off, where the JavaScript filter runs.
+// Screen off, where the JavaScript filter runs, and Home Assistant where MQTT is on too.
 function actionChoices() {
-  return [{ id: SCREEN_OFF, title: msg('srv.remoteKeys.screenOff', 'Screen off'), kind: 'action' }];
+  var out = [{ id: SCREEN_OFF, title: msg('srv.remoteKeys.screenOff', 'Screen off'), kind: 'action' }];
+  if (homeAssistantOn()) out.push({ id: HOME_ASSISTANT, title: msg('srv.remoteKeys.homeAssistant', 'Home Assistant'), kind: 'ha' });
+  return out;
+}
+
+// Whether a key's presses reach Home Assistant, so it can be set to send them there.
+function reported(key) {
+  return reportedButtons().indexOf(key) !== -1;
 }
 
 // Home as a choice, where the JavaScript filter opens it as the Home key would.
@@ -1244,6 +1264,7 @@ function describeKeys(keys, inChain, cb, native) {
         if (k.turnsOffVoice) key.turnsOffVoice = true;
         if (k.replacesVoice) key.replacesVoice = true;
         if (native && NATIVE_BLOCK_KEYS[k.key]) key.blocksApp = true;
+        if (!native && homeAssistantOn() && reported(k.key)) key.homeAssistant = true;
         return key;
       });
       cb({
@@ -1292,6 +1313,9 @@ function setOfferedKey(def, action, id, kind, cb) {
       var media = kind === 'filter' ? actionChoices().concat(mediaChoices()) : [];
       var allowed = switchers.concat(media, inputChoices(), homeChoices(kind !== 'filter'), appChoices(apps))
         .some(function (c) { return c.id === id; });
+      if (id === HOME_ASSISTANT && !reported(def.key)) {
+        return cb({ ok: false, error: msg('srv.remoteKeys.notReported', 'Home Assistant does not receive this key\'s presses') });
+      }
       if (!allowed) return cb({ ok: false, error: msg('srv.remoteKeys.unknownApp', 'That app is not on this TV') });
       map[def.key] = id;
       save(map, cb);

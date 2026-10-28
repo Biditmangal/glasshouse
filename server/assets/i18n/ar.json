@@ -2405,5 +2405,8 @@
  "tv.saver.app.hint": {"text": "من تطبيق {app}. إعداداتها، إن وُجدت، في ذلك التطبيق.", "from": "From the {app} app. Any settings it has are in that app."},
  "tv.apps.install.pv.screensaverListed": {"text": "مدرجة مع شاشاتنا", "from": "Listed with ours"},
  "apps.install.screensaver.listed": {"text": "لهذا التطبيق شاشة توقف. بعد تثبيته، اخترها من تبويب شاشة التوقف مع شاشات Glasshouse.", "from": "This app has a screen saver. Once it is installed, choose it on the Screen Saver tab, with Glasshouse’s own."},
- "srv.remoteKeys.screenOff": {"text": "إيقاف الشاشة", "from": "Screen off"}
+ "srv.remoteKeys.screenOff": {"text": "إيقاف الشاشة", "from": "Screen off"},
+ "srv.remoteKeys.homeAssistant": {"text": "Home Assistant", "from": "Home Assistant"},
+ "apps.remoteKeys.toHomeAssistant": {"text": "إلى Home Assistant", "from": "To Home Assistant"},
+ "srv.remoteKeys.notReported": {"text": "لا يستقبل Home Assistant ضغطات هذا الزر", "from": "Home Assistant does not receive this key's presses"}
 }
