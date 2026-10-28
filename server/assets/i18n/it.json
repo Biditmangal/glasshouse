@@ -2397,6 +2397,8 @@
  "home.row.recOff": {"text": "Attivala nelle impostazioni Home di Glasshouse", "from": "Switch on in Glasshouse’s Home settings"},
  "home.row.recommended": {"text": "Consigliati", "from": "Recommended"},
  "srv.home.recommendedUnavailable": {"text": "la TV non ha elencato i consigli delle sue app", "from": "the TV did not list its apps’ recommendations"},
+ "audio.hdmiChannels": {"text": "Canali indicati via HDMI", "from": "HDMI channel information"},
+ "audio.hdmiMetadataHint": {"text": "I canali indicati dalla sorgente HDMI. Possono restare durante una pausa e non confermano la riproduzione sul ricevitore.", "from": "Channel metadata reported by the HDMI source. It can remain during a pause and does not confirm playback at the receiver."},
  "srv.saver.fromApp": {"text": "Lo screensaver dell'app {app}. Le eventuali impostazioni sono in quell'app.", "from": "The screen saver from the {app} app. Any settings it has are in that app."},
  "srv.saver.appTooBig": {"text": "Il suo file di screensaver supera i {kb} KB.", "from": "Its screen saver file is over {kb} KB."},
  "ss.installedApp": {"text": "App installata", "from": "Installed app"},
