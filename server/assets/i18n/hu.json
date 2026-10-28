@@ -2412,5 +2412,8 @@
  "ctl.keyboard.enter": {"text": "Enter", "from": "Enter"},
  "ctl.keyboard.hint": {"text": "Előbb jelölj ki egy szövegmezőt a tévén, például egy keresőt vagy egy webcímet. Amit itt írsz, gépelés közben odakerül, a törléssel együtt, az Enter pedig elküldi.", "from": "Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it."},
  "ctl.keyboard.up": {"text": "Az LG billentyűzete látható a tévén: amit itt írsz, gépelés közben a mezőjébe kerül, a törléssel együtt, az Enter pedig elküldi.", "from": "LG’s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it."},
- "ctl.keyboard.down": {"text": "Az LG billentyűzete nem látható a tévén. Előbb jelölj ki ott egy szövegmezőt, például egy keresőt vagy egy webcímet. Egyes alkalmazások saját billentyűzetet használnak.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."}
+ "ctl.keyboard.down": {"text": "Az LG billentyűzete nem látható a tévén. Előbb jelölj ki ott egy szövegmezőt, például egy keresőt vagy egy webcímet. Egyes alkalmazások saját billentyűzetet használnak.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."},
+ "srv.remoteKeys.homeAssistant": {"text": "Home Assistant", "from": "Home Assistant"},
+ "apps.remoteKeys.toHomeAssistant": {"text": "A Home Assistantnak", "from": "To Home Assistant"},
+ "srv.remoteKeys.notReported": {"text": "A Home Assistant nem kapja meg ennek a gombnak a lenyomásait", "from": "Home Assistant does not receive this key's presses"}
 }

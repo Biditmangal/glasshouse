@@ -315,6 +315,40 @@ step(function (next) {
   }));
 });
 
+// #1088: with MQTT on, a key whose presses Home Assistant receives can be set
+// to send them there; the filter keeps it from the TV and opens nothing.
+step(function (next) {
+  var mqtt = false;
+  rk.init({ luna: luna, inputNames: { hdmi1: 'HDMI 1', hdmi2: 'Apple TV' }, stateDir: stateDir, filtersDir: filtersDir,
+            homeAssistant: function () { return mqtt; } });
+  rk.getRemoteKeys(guard(function (off) {
+    assert.ok(!off.choices.some(function (c) { return c.id === 'action:homeAssistant'; }), 'not without MQTT');
+    assert.ok(!off.keys.some(function (k) { return k.homeAssistant; }));
+    mqtt = true;
+    rk.getRemoteKeys(guard(function (on) {
+      assert.ok(on.choices.some(function (c) { return c.id === 'action:homeAssistant' && c.kind === 'ha'; }));
+      var offered = on.keys.filter(function (k) { return k.homeAssistant; }).map(function (k) { return k.key; });
+      assert.deepEqual(offered, ['netflix', 'amazon', 'movies', 'red'], 'the keys Home Assistant receives, not Guide');
+      rk.setRemoteKey('guide', 'open', 'action:homeAssistant', guard(function (refused) {
+        assert.strictEqual(refused.ok, false);
+        assert.ok(/does not receive/.test(refused.error));
+        rk.setRemoteKey('red', 'open', 'action:homeAssistant', guard(function (s) {
+          assert.strictEqual(s.ok, true);
+          var f = loadFilter();
+          assert.strictEqual(f.handle(1004, true, false), 'accepted', 'kept from the TV');
+          assert.strictEqual(f.handle(1004, false, false), 'accepted');
+          assert.strictEqual(f.launched.length, 0, 'nothing opened');
+          assert.strictEqual(f.sent.filter(function (m) { return /turnOffScreen|sendKeyCode/.test(m.uri); }).length, 0);
+          rk.setRemoteKey('red', 'lg', '', guard(function () {
+            console.log('  ✓ with MQTT on, a key Home Assistant receives can be set to send it there, which the TV then ignores');
+            next();
+          }));
+        }));
+      }));
+    }));
+  }));
+});
+
 step(function (next) {
   var writes = tv.chainWrites;
   rk.ensure(guard(function (ok) {
