@@ -182,6 +182,8 @@ var wasEnabled = false;
 // LG's Home is in its place, opened by one of the ways back to it.
 var escaped = false;
 var foreground = '';
+// When something other than the view last came to the front, for the open watch.
+var otherOpenedAt = 0;
 var lastSource = null;
 var beatTimer = null;
 var lastBeatAt = 0;
@@ -840,6 +842,8 @@ function open(body, cb) {
   var kind = body && body.kind;
   var id = body && typeof body.id === 'string' ? body.id : '';
   console.log('home: open ' + kind + ' ' + id);
+  // Only the view opens tiles: asked to, it is up, whether or not it beat first.
+  beats++;
   if (kind === 'lg' || (kind === 'app' && id === LG_HOME_TILE)) {
     if (body.recovery && !viewInFront()) return cb({ ok: true, done: false });
     return toLgHome('tile', cb);
@@ -1434,6 +1438,7 @@ function beat() {
 function foregroundChanged(id) {
   var was = foreground;
   foreground = id;
+  if (id && id !== LG_HOME && id !== was) otherOpenedAt = nowMs();
   if (wakeRequest && id && id !== was) {
     if (!wakeRequest.input && isInputApp(id)) wakeRequest.input = id;
     else if (wakeRequest.input !== id) cancelWake();
@@ -1488,7 +1493,10 @@ function homeKey(down) {
 /*
  * After a short Home press the view beats at once, opened or relaunched. sam
  * is no witness: with WebAppMgr stopped it kept naming the view in front
- * though nothing was drawn (a G4, webOS 11.2.0).
+ * though nothing was drawn (a G4, webOS 11.2.0). Something else opened since
+ * ends the watch: on a C2 (webOS 9.2.2) the view opened an input 2 s after a
+ * press, and hidden before its next 5 s beat, sent none, so LG's Home opened
+ * over the input 18 s later.
  */
 function watchOpen(retried, ms) {
   stopOpenWatch();
@@ -1497,6 +1505,7 @@ function watchOpen(retried, ms) {
     openTimer = setTimeout(function () {
       openTimer = null;
       if (beats > beatsBefore || escaped || !powerActive || !readConfig().enabled) return;
+      if (otherOpenedAt > since && foreground !== LG_HOME) return;
       var left = slowOpenMs - (nowMs() - since);
       if (!retried && left > 0 && webAppMgrRunning() !== false) return check(left);
       recoverView('Glasshouse Home did not open', retried);
