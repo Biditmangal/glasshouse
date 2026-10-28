@@ -536,6 +536,17 @@ Measured on 18 October 2026 by launching apps over SSH and logging
   is the one the remote's keys reach.
 - All three accept `subscribe: true`. SurfaceManager's replies are formatted
   JSON over several lines even without luna-send's `-f`.
+- LG's on-screen keyboard is the MaliitServer surface
+  `_WEBOS_WINDOW_TYPE_KEYBOARD`. `getForegroundWindowInfo` lists it while it
+  is open, but it never takes focus, so `getFocusedWindowInfo` keeps naming
+  the app typed into. With it up, keys sent through
+  `networkinput/test/sendKeyCode` did not move it; the remote's own input
+  device does.
+- `com.webos.service.ime` has four methods: `registerRemoteKeyboard`
+  (subscribe only; `currentWidget.focus` and the field's content type),
+  `insertText` (`text`, optional `replace` and `replaceLength`),
+  `deleteCharacters` (`count`, optional `mode` `backspace` or `direct`) and
+  `sendEnterKey`. None checks that the caller registered as a remote keyboard.
 
 ## Disconnected input devices (webOS 6.4.0, C1)
 
