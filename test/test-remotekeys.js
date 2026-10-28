@@ -74,6 +74,7 @@ function loadFilter(broken) {
   var launched = [];
   var sent = [];
   var subscribed = null;
+  var powerCb = null;
   var timers = [];
   var ctx = {
     genericTimer: { set: function (ms, fn) { timers.push({ ms: ms, fn: fn }); return timers.length; } },
@@ -83,7 +84,9 @@ function loadFilter(broken) {
     KeyPolicy: { NextPolicy: 'next', Accepted: 'accepted', NotAccepted: 'notAccepted' },
     lunaCall: {
       appId: 'com.webos.surfacemanager',
+      // configd's keys, and tvpower's state, which the test sets with power().
       subscribe: function (service, method, payload, cb) {
+        if (method === '/power/getPowerState') { powerCb = cb; return; }
         subscribed = { service: service, method: method, payload: JSON.parse(payload), cb: cb };
       },
       // sam answers for LG's Home with the type tv.homeType gives.
@@ -110,8 +113,9 @@ function loadFilter(broken) {
   }
   tell(tv.keys);
   function expire() { timers.forEach(function (t) { t.fn(); }); }
+  function power(state) { powerCb(JSON.stringify({ returnValue: true, state: state })); }
   return { handle: ctx.handler, launched: launched, sent: sent, subscribed: subscribed, tell: tell,
-           timers: timers, expire: expire };
+           timers: timers, expire: expire, power: power };
 }
 
 // Each step takes next(); a failure ends the run.
@@ -139,7 +143,7 @@ step(function (next) {
     assert.ok(r.keys.every(function (k) { return k.action === 'lg' && k.id === ''; }));
     assert.strictEqual(r.inChain, false);
     assert.deepEqual(r.choices.map(function (c) { return c.id; }),
-      ['media:play', 'media:pause', 'media:stop', 'media:rewind', 'media:fastForward',
+      ['action:screenOff', 'media:play', 'media:pause', 'media:stop', 'media:rewind', 'media:fastForward',
        'media:volumeUp', 'media:volumeDown', 'media:mute',
        'com.webos.app.hdmi1', 'com.webos.app.hdmi2', 'com.webos.app.livetv',
        'com.webos.app.home', 'netflix', 'youtube.leanback.v4']);
@@ -271,6 +275,41 @@ step(function (next) {
             }));
           }));
         }));
+      }));
+    }));
+  }));
+});
+
+// #1085: one press blanks the panel, as the dashboard's Screen off does. The
+// key's release woke a C2 when the press blanked it, so the release blanks it.
+step(function (next) {
+  rk.setRemoteKey('red', 'open', 'action:screenOff', guard(function (s) {
+    assert.strictEqual(s.ok, true);
+    var f = loadFilter();
+    var offs = function () { return f.sent.filter(function (m) { return m.uri === 'com.webos.service.tvpower/power/turnOffScreen'; }).length; };
+    f.power('Active');
+    assert.strictEqual(f.handle(1004, true, false), 'accepted');
+    assert.strictEqual(f.handle(1004, true, true), 'accepted');
+    assert.strictEqual(offs(), 0, 'not on the press, nor while held');
+    assert.strictEqual(f.handle(1004, false, false), 'accepted');
+    assert.strictEqual(offs(), 1, 'on the release, once');
+    assert.strictEqual(f.launched.length, 0);
+    // With the screen off, the press wakes it, and its release does not blank it again,
+    // though tvpower reports Active again before the release.
+    f.power('Screen Off');
+    f.handle(1004, true, false);
+    f.power('Active');
+    f.handle(1004, false, false);
+    assert.strictEqual(offs(), 1);
+    // A release with no press seen, such as one held over from before the filter loaded, does nothing.
+    f.handle(1004, false, false);
+    assert.strictEqual(offs(), 1);
+    rk.getRemoteKeys(guard(function (r) {
+      var red = r.keys.filter(function (k) { return k.key === 'red'; })[0];
+      assert.strictEqual(red.opens, 'Screen off');
+      rk.setRemoteKey('red', 'lg', '', guard(function () {
+        console.log('  ✓ a key set to Screen off blanks the panel on its release, and a press while it is off only wakes it');
+        next();
       }));
     }));
   }));
