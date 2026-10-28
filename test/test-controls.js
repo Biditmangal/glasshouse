@@ -596,6 +596,26 @@ console.log('Running test-controls.js ...');
   }, 120);
 })();
 
+// The dashboard's keyboard box: what it types, and a cap on each change, as
+// every backspace is a key press of its own.
+(function testSendTextCap() {
+  var sent = [];
+  controls.init({ lunaUrgent: function (uri, payload, cb) { sent.push(uri + ' ' + JSON.stringify(payload)); cb({ returnValue: true }); } });
+  var answers = [];
+  controls.doControl('sendText', { text: 'abc', replace: 0 }, function (r) { answers.push(r.ok); });
+  controls.doControl('sendText', { text: 'd', replace: 2 }, function (r) { answers.push(r.ok); });
+  var over = new Array(controls.SEND_TEXT_MAX + 2).join('x');
+  controls.doControl('sendText', { text: over, replace: 0 }, function (r) { answers.push(r.ok); });
+  controls.doControl('sendText', { text: '', replace: controls.SEND_TEXT_MAX + 1 }, function (r) { answers.push(r.ok); });
+  assert.deepEqual(answers, [true, true, false, false], 'more than the cap is refused');
+  assert.deepEqual(sent, [
+    'com.webos.service.ime/insertText {"text":"abc"}',
+    'com.webos.service.ime/deleteCharacters {"count":2}',
+    'com.webos.service.ime/insertText {"text":"d"}'
+  ], 'deleting through the input method, in one call, then typing, on the urgent path; nothing over the cap');
+  console.log('  ✓ the keyboard box deletes and types through the input method, and refuses more than ' + controls.SEND_TEXT_MAX + ' characters at a time');
+})();
+
 console.log('ALL test-controls.js assertions passed!\n');
 
 // 6. A powerOff answered with a failure is read back before trying again

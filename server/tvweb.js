@@ -930,6 +930,10 @@ routes.init({
   clock: clockFormat,
   piccapStatus: piccap.status,
   huesyncStatus: huesync.status,
+  keyboardUp: function () {
+    var kb = liveState.state.snapshot().keyboard;
+    return kb && typeof kb.keyboard_visible === 'boolean' ? kb.keyboard_visible : null;
+  },
   repo: repo,
   installer: installer,
   prometheus: prometheus,

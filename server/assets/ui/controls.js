@@ -190,6 +190,79 @@ function applyOptimistic(action, value) {
   }
 }
 
+// Tracks what the TV's field has actually received so far, so each keystroke
+// (including backspace) can be sent as a small diff instead of the whole line.
+let kbSynced = '';
+let kbSyncing = false;
+let kbResyncNeeded = false;
+
+function kbCommonPrefixLen(a, b) {
+  const max = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < max && a[i] === b[i]) i++;
+  return i;
+}
+
+// A keystroke's change, sent on its own: sendCommand refreshes every reading
+// after each command, which held typing up when it ran for every letter.
+async function kbSend(action, value) {
+  try {
+    const r = await fetch(api('/api/control'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, value })
+    });
+    const j = await r.json();
+    if (!j.ok) showErr(j.error || t('common.actionFailed', 'Action failed'));
+    return j;
+  } catch (e) {
+    showErr(e.message);
+    return null;
+  }
+}
+
+async function kbSyncLive() {
+  const el = document.getElementById('kb-text');
+  if (!el) return;
+  if (kbSyncing) { kbResyncNeeded = true; return; }
+  const cur = el.value;
+  if (cur === kbSynced) return;
+  kbSyncing = true;
+  const prefixLen = kbCommonPrefixLen(kbSynced, cur);
+  const del = kbSynced.length - prefixLen;
+  const text = cur.slice(prefixLen);
+  const sentAsOf = cur;
+  try {
+    const r = await kbSend('sendText', { text, replace: del });
+    if (r && r.ok) kbSynced = sentAsOf;
+  } finally {
+    kbSyncing = false;
+    if (kbResyncNeeded) { kbResyncNeeded = false; kbSyncLive(); }
+  }
+}
+
+// Enter: the text is already on the TV, so this submits it through LG's input
+// method, as its keyboard's Enter does. OK would press the key LG's keyboard
+// has in focus. The box starts again empty, as the TV's field has moved on.
+async function sendTypedText() {
+  await kbSyncLive();
+  await kbSend('keyboardKey', 'enter');
+  const el = document.getElementById('kb-text');
+  if (el) el.value = '';
+  kbSynced = '';
+}
+
+// Whether LG's on-screen keyboard is up, where the TV says (webOS 6 and later);
+// a hint only, as some apps draw a keyboard of their own.
+function renderKeyboardHint(d) {
+  const hint = document.getElementById('kb-hint');
+  if (!hint) return;
+  hint.textContent = d.keyboardUp === true
+    ? t('ctl.keyboard.up', 'LG\u2019s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it.')
+    : d.keyboardUp === false
+      ? t('ctl.keyboard.down', 'LG\u2019s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead.')
+      : t('ctl.keyboard.hint', 'Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it.');
+}
+
 async function sendCommand(action, value) {
   let triggerBtn = null;
   if (typeof window !== 'undefined' && window.event && window.event.target && window.event.target.closest) {

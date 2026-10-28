@@ -2405,5 +2405,12 @@
  "tv.saver.app.hint": {"text": "Dall'app {app}. Le eventuali impostazioni sono in quell'app.", "from": "From the {app} app. Any settings it has are in that app."},
  "tv.apps.install.pv.screensaverListed": {"text": "Elencato con i nostri", "from": "Listed with ours"},
  "apps.install.screensaver.listed": {"text": "Questa app ha uno screensaver. Una volta installata, sceglilo nella scheda Screensaver, insieme a quelli di Glasshouse.", "from": "This app has a screen saver. Once it is installed, choose it on the Screen Saver tab, with Glasshouse’s own."},
- "srv.remoteKeys.screenOff": {"text": "Spegni schermo", "from": "Screen off"}
+ "srv.remoteKeys.screenOff": {"text": "Spegni schermo", "from": "Screen off"},
+ "ctl.keyboard": {"text": "Tastiera", "from": "Keyboard"},
+ "ctl.keyboard.sub": {"text": "Scrivi nel campo selezionato", "from": "Type into a focused field"},
+ "ctl.keyboard.placeholder": {"text": "Seleziona un campo sulla TV, poi scrivi", "from": "Focus a field on the TV, then type"},
+ "ctl.keyboard.enter": {"text": "Invio", "from": "Enter"},
+ "ctl.keyboard.hint": {"text": "Prima seleziona un campo di testo sulla TV, come una ricerca o un indirizzo web. Ciò che scrivi qui arriva lì mentre scrivi, cancellazioni comprese, e Invio lo conferma.", "from": "Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.up": {"text": "La tastiera di LG è aperta sulla TV: ciò che scrivi qui arriva al suo campo mentre scrivi, cancellazioni comprese, e Invio lo conferma.", "from": "LG’s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.down": {"text": "La tastiera di LG non è aperta sulla TV. Seleziona prima lì un campo di testo, come una ricerca o un indirizzo web. Alcune app usano una tastiera propria.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."}
 }

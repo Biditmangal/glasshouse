@@ -2405,5 +2405,12 @@
  "tv.saver.app.hint": {"text": "A(z) {app} alkalmazásból. A beállításai, ha vannak, abban az alkalmazásban vannak.", "from": "From the {app} app. Any settings it has are in that app."},
  "tv.apps.install.pv.screensaverListed": {"text": "A mieink mellett", "from": "Listed with ours"},
  "apps.install.screensaver.listed": {"text": "Ennek az alkalmazásnak van képernyővédője. Telepítés után a Képernyővédő lapon választható ki, a Glasshouse sajátjai mellett.", "from": "This app has a screen saver. Once it is installed, choose it on the Screen Saver tab, with Glasshouse’s own."},
- "srv.remoteKeys.screenOff": {"text": "Képernyő ki", "from": "Screen off"}
+ "srv.remoteKeys.screenOff": {"text": "Képernyő ki", "from": "Screen off"},
+ "ctl.keyboard": {"text": "Billentyűzet", "from": "Keyboard"},
+ "ctl.keyboard.sub": {"text": "Írás a kijelölt mezőbe", "from": "Type into a focused field"},
+ "ctl.keyboard.placeholder": {"text": "Jelölj ki egy mezőt a tévén, aztán írj", "from": "Focus a field on the TV, then type"},
+ "ctl.keyboard.enter": {"text": "Enter", "from": "Enter"},
+ "ctl.keyboard.hint": {"text": "Előbb jelölj ki egy szövegmezőt a tévén, például egy keresőt vagy egy webcímet. Amit itt írsz, gépelés közben odakerül, a törléssel együtt, az Enter pedig elküldi.", "from": "Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.up": {"text": "Az LG billentyűzete látható a tévén: amit itt írsz, gépelés közben a mezőjébe kerül, a törléssel együtt, az Enter pedig elküldi.", "from": "LG’s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.down": {"text": "Az LG billentyűzete nem látható a tévén. Előbb jelölj ki ott egy szövegmezőt, például egy keresőt vagy egy webcímet. Egyes alkalmazások saját billentyűzetet használnak.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."}
 }

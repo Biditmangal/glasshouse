@@ -7,6 +7,7 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 ![The D-pad opened: arrows around OK, with Back and Home below](../screenshots/control-dpad.png)
 
 * **D-pad navigation:** Directional arrows (Up, Down, Left, Right), OK/Select, Back, Home and Settings (LG's quick settings) to navigate webOS menus and built-in interfaces.
+* **Keyboard box:** types into the text field selected on the TV, such as a search box or a web address, as you type, backspace included, up to 500 characters at a time. **Enter** submits it, as the Enter on LG's on-screen keyboard does, and empties the box. On webOS 6 and later the note under it says whether LG's on-screen keyboard is up; some apps, such as YouTube, draw a keyboard of their own instead.
 * **Keyboard:** while the Control tab is open, a computer's keyboard works as the remote: the arrow keys, Enter for OK, Esc or Backspace for Back, H for Home, M for Settings, Space for play or pause and K for mute. Keys typed into a field, or pressed with Ctrl, Alt or Cmd, are left to the page.
 * **Media playback:** Dedicated transport controls (Play, Pause, Stop, Rewind, Fast Forward) for active media players.
 * **Volume and mute:** Volume slider, precision step buttons (`+` and `-`), and a one-click mute toggle.

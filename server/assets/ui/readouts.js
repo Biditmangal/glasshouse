@@ -230,6 +230,7 @@ async function tick() {
     const firstData = !lastOk;
     lastOk = Date.now();
 
+    renderKeyboardHint(d);
     const hk = hdmiKey(d);
     if (lastHdmiKey !== null && hk !== lastHdmiKey && hdmiLoaded) loadHdmi();
     lastHdmiKey = hk;

@@ -54,6 +54,8 @@ var RCU_KEYS = {
 
 // What one Keyboard Text entry may insert into the focused field.
 var KEYBOARD_TEXT_MAX = 100;
+// The dashboard's keyboard box: enough for a web address.
+var SEND_TEXT_MAX = 500;
 
 // The remote's volume keys: evdev codes, IR_KEY_VOL_UP and IR_KEY_VOL_DOWN in
 // /usr/share/X11/xkb/keycodes/lg less the 8 that xkb adds.
@@ -327,6 +329,37 @@ function doControl(action, value, cb) {
       return luna('com.webos.applicationManager/launch',
                   { id: names.inputAppId(value) },
                   function (r) { cb({ ok: !!(r && r.returnValue) }); });
+
+    case 'sendText':
+      /*
+       * The dashboard's keyboard box: types into the text field in focus on
+       * the TV, as it is typed. value is a string to insert, or { text,
+       * replace } with the characters to delete first. Both go through LG's
+       * input method on the urgent path, as keyboardText does: typing queued
+       * behind other calls stalled in Glasshouse Home's search, and a
+       * backspace sent as a key on the remote's device closed LG's keyboard
+       * there instead (a C2, webOS 9.2.2).
+       */
+      var typed, delCount;
+      if (value && typeof value === 'object') {
+        typed = String(value.text == null ? '' : value.text);
+        delCount = Math.max(0, toInt(value.replace, 0));
+      } else {
+        typed = String(value == null ? '' : value);
+        delCount = 0;
+      }
+      if (typed.length > SEND_TEXT_MAX || delCount > SEND_TEXT_MAX) {
+        return cb({ ok: false, error: 'at most ' + SEND_TEXT_MAX + ' characters at a time' });
+      }
+      var insertRest = function () {
+        if (!typed) return cb({ ok: true });
+        lunaUrgent('com.webos.service.ime/insertText', { text: typed }, imeAnswer(cb));
+      };
+      if (delCount <= 0) return insertRest();
+      return lunaUrgent('com.webos.service.ime/deleteCharacters', { count: delCount }, function (r) {
+        if (!r || !r.returnValue) return imeAnswer(cb)(r);
+        insertRest();
+      });
 
     case 'launch_app':
     case 'launchApp':
@@ -1214,6 +1247,7 @@ module.exports = {
   RCU_KEY_CODES: RCU_KEY_CODES,
   RCU_KEYS: RCU_KEYS,
   KEYBOARD_TEXT_MAX: KEYBOARD_TEXT_MAX,
+  SEND_TEXT_MAX: SEND_TEXT_MAX,
   KEY_BACK: KEY_BACK,
   SLEEP_TIMER_VALUES: SLEEP_TIMER_VALUES,
   ENERGY_SAVING_VALUES: ENERGY_SAVING_VALUES,

@@ -118,6 +118,8 @@ var lunaFn = null;
 var getMqttStatusFn = null;
 var piccapStatusFn = function (cb) { cb(null); };
 var huesyncStatusFn = function (cb) { cb(null); };
+// Whether LG's on-screen keyboard is up: true, false, or null where the TV does not say.
+var keyboardUpFn = function () { return null; };
 var appsChangedFn = function () {};
 var versionStr = '';
 // With the commit of a git build: what a person reads, and what tells one
@@ -1865,13 +1867,16 @@ function handleRequest(req, res) {
       // Advanced tab.
       piccapStatusFn(function (pc) {
         huesyncStatusFn(function (hs) {
-          if (!pc && !hs && !clockModule && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
+          var keyboardUp = keyboardUpFn();
+          if (!pc && !hs && !clockModule && keyboardUp === null && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
           // Copied, since s is telemetry's cache.
           var copy = {};
           for (var k in s) copy[k] = s[k];
           if (clockModule) copy.clockHour12 = clockHour12();
           if (pc) copy.piccapCapture = pc;
           if (hs) copy.huesyncStreaming = hs;
+          // For the Control tab's keyboard box.
+          if (keyboardUp !== null) copy.keyboardUp = keyboardUp;
           if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(copy));
           // The TV dashboard's System page, which reads one endpoint, also
           // lists the sound and SIMPLINK settings.
@@ -2056,6 +2061,7 @@ function init(opts) {
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;
   if (opts.piccapStatus) piccapStatusFn = opts.piccapStatus;
   if (opts.huesyncStatus) huesyncStatusFn = opts.huesyncStatus;
+  if (opts.keyboardUp) keyboardUpFn = opts.keyboardUp;
   if (opts.repo) repoModule = opts.repo;
   if (opts.installer) installerModule = opts.installer;
   if (opts.prometheus) prometheusModule = opts.prometheus;

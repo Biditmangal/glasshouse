@@ -2405,5 +2405,12 @@
  "tv.saver.app.hint": {"text": "Из приложения {app}. Её настройки, если есть, — в этом приложении.", "from": "From the {app} app. Any settings it has are in that app."},
  "tv.apps.install.pv.screensaverListed": {"text": "Рядом с нашими", "from": "Listed with ours"},
  "apps.install.screensaver.listed": {"text": "У этого приложения есть заставка. После установки выберите её на вкладке «Заставка», рядом с заставками Glasshouse.", "from": "This app has a screen saver. Once it is installed, choose it on the Screen Saver tab, with Glasshouse’s own."},
- "srv.remoteKeys.screenOff": {"text": "Выключить экран", "from": "Screen off"}
+ "srv.remoteKeys.screenOff": {"text": "Выключить экран", "from": "Screen off"},
+ "ctl.keyboard": {"text": "Клавиатура", "from": "Keyboard"},
+ "ctl.keyboard.sub": {"text": "Ввод в выбранное поле", "from": "Type into a focused field"},
+ "ctl.keyboard.placeholder": {"text": "Выберите поле на телевизоре и печатайте", "from": "Focus a field on the TV, then type"},
+ "ctl.keyboard.enter": {"text": "Ввод", "from": "Enter"},
+ "ctl.keyboard.hint": {"text": "Сначала выберите текстовое поле на телевизоре, например поиск или веб-адрес. Набранное здесь попадает туда по мере ввода, включая удаление, а «Ввод» отправляет текст.", "from": "Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.up": {"text": "Клавиатура LG открыта на телевизоре: набранное здесь попадает в её поле по мере ввода, включая удаление, а «Ввод» отправляет текст.", "from": "LG’s keyboard is up on the TV: what you type here goes to its field as you type, backspace included, and Enter submits it."},
+ "ctl.keyboard.down": {"text": "Клавиатура LG не открыта на телевизоре. Сначала выберите там текстовое поле, например поиск или веб-адрес. Некоторые приложения используют свою клавиатуру.", "from": "LG’s keyboard is not up on the TV. Select a text field there first, such as a search box or a web address. Some apps use a keyboard of their own instead."}
 }

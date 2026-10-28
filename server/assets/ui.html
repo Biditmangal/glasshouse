@@ -344,6 +344,20 @@
       </div>
     </details>
 
+    <details class="disc" id="disc-keyboard" data-col="0">
+      <summary><span data-t="ctl.keyboard">Keyboard</span> <span class="cur" data-t="ctl.keyboard.sub">Type into a focused field</span></summary>
+
+      <div class="set">
+        <form class="toast-form" onsubmit="event.preventDefault();sendTypedText();">
+          <input type="text" id="kb-text" placeholder="Focus a field on the TV, then type"
+                 data-t-placeholder="ctl.keyboard.placeholder" maxlength="500" autocomplete="off" spellcheck="false"
+                 oninput="kbSyncLive()">
+          <button type="submit" id="btn-kb-enter" data-t="ctl.keyboard.enter">Enter</button>
+        </form>
+        <p class="sub" id="kb-hint" data-t="ctl.keyboard.hint">Focus a text field on the TV first, such as a search box or a web address. What you type here goes to it as you type, backspace included, and Enter submits it.</p>
+      </div>
+    </details>
+
     <details class="disc" id="disc-timers">
       <summary><span data-t="ctl.sleep">Sleep timer</span> <span class="cur" id="tl-cur"></span></summary>
 
