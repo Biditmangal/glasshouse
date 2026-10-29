@@ -1710,6 +1710,14 @@ function setupHomeAssistant() {
       return;
     }
 
+    // notify/<type>, the text optionally opening with ":icon:".
+    if (action === 'notify' || action.indexOf('notify/') === 0) {
+      doControl('toast', { type: action.substring(7) || 'standard', text: val }, function (r) {
+        if (!r || !r.ok) console.error('mqtt: ' + action + ' failed: ' + ((r && r.error) || 'unknown error'));
+      });
+      return;
+    }
+
     if (action === 'update') {
       // Home Assistant's update entity sends `install`. Anything else on this
       // topic is read as a request to look rather than to install, so an

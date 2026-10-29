@@ -842,6 +842,21 @@ from Screen Saver to Screen Off and back to Active 0.2 s later, with the screen
 on. From Active it holds. Screen-time limits dismiss the screen saver with
 Back first, as the screen saver tab does.
 
+## Toasts with an icon (C1, webOS 6.5.1)
+
+`Toast.qml` knows three `type`s. `standard`, the default, is the toast at the
+bottom center, text only: its icon slot is 0 wide. `advanced` is the same
+900-wide toast at the bottom with a 66 icon, and is clickable when it has an
+`action`. `light` is the small toast that slides down at the top right, 50%
+black, with a 36 icon, between 150 and 450 wide. The icon is `iconUrl`, a local file:
+`SystemUI/Notification/Toast.qml` passes it through `Utils.applyImagePath`.
+Sizes are at 1080p (`NotificationStyle.qml`). A toast stays about 5 seconds
+whatever is asked.
+
+On a B8 (webOS 4.4.3), `createToast` refuses `type: advanced` with "Message
+is not parsed", with or without `iconUrl`; `light` and `standard` work, `light`
+with its icon. A C2 (webOS 9.2.2) shows all three.
+
 ## Switching off (C5, webOS 10.3.1)
 
 `power/powerOff` with reason `remoteKey` switched the TV off, going Active,
