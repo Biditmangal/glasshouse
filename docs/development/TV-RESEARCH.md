@@ -427,6 +427,24 @@ Measured on 22 October 2026 on an LCD 65UQ801C0SB, firmware 04.60.90.
   in front about 6 s later, against 2 to 3 s on a G3; the screen is black
   meanwhile.
 
+## Glasshouse Home on webOS 6.4.0 (OLED55C14LB, firmware 03.41.00)
+
+Reported on PR #910 on 27 October 2026.
+
+- **No `defaultApps` at all.** `getSystemSettings` in `general` for
+  `defaultApps` answers `returnValue: false` with `errorText: "There is no
+  matched result from DB"`, and neither `settings` nor `errorKey`, where 6.5.3
+  gives a partial answer.
+- **The last input comes back after sam restarts.** With Home held, the
+  release's sam restart gave LG's Home its place and it opened, and about 3 s
+  later the last-input handler put HDMI 3 back over it, as on webOS 5.
+- **An app brought back from Recent apps does not move sam's foreground.**
+  House, already running, came to the front with no launch, and sam kept naming
+  `com.webos.app.home` in front for the 20 s until the view was taken for hung.
+  Apps opened from the view's rows did move it.
+- **Exiting an app lands on the last input**, from LG's Exit dialog or Back on
+  LG's Apps, not on Home.
+
 ## LG Home's recent apps (G3, webOS 9.2.2)
 
 Read on 19 October 2026 from LG's Home's QML under the Glasshouse Home
@@ -1341,6 +1359,29 @@ The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
   `sam-conf-tv.json` once about 5 s into boot, and `sam.service`'s
   `ExecStartPre` script kills every native app when sam is respawned, so the
   list cannot be changed without a mount and a sam restart at every boot.
+
+## Which app the Home key opens (webOS 5.6.2, CX)
+
+- `general.defaultApps.home` is `com.webos.app.fullhome`, LG's full-screen
+  Home, a separate native app (`appCategory: ["home"]`, window type `home`)
+  from `com.webos.app.home`. surfacemanager launches it for a Home press
+  (`NL_APP_LAUNCH_BEGIN`, caller `com.webos.surfacemanager`, then `NL_VSC` with
+  `_WEBOS_WINDOW_TYPE_HOME`). With Glasshouse Home in `com.webos.app.home`'s
+  place, the first press showed LG's Home and only the second the view.
+- Releasing the overlay to open `com.webos.app.home` again restarts sam, and
+  about 1 s after the launch `last_input_handler` (mode `last_input`)
+  launched the input, then eim again at 4.8 s; LG's Home was hidden under it
+  (the LG Home tile, 01:33 UTC), and the same when Home was held. Launching
+  `com.webos.app.fullhome` needs no release.
+- Home was the same web process (pid unchanged) across both presses and
+  `getForegroundAppInfo` kept naming the input, so a Home window is not
+  visible in the foreground app; `/var/log/messages` shows which one is.
+- Woken from Active Standby by the remote key, with Home opened 1.4 s in
+  (`com.webos.app.home`, caller `lunasend`), Home showed for about 2 s: eim
+  launched the input (`com.webos.app.hdmi2`) again 2.9 s after the wake, twice,
+  and it came back in front.
+- `homeAutoLaunch` and `checkHomeAutoLaunchValue` are in category `general`;
+  asked for under `option` they come back as `errorKey`.
 
 ## Home's launch events (webOS 5.6.2, CX)
 
