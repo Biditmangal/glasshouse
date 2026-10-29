@@ -1,0 +1,10 @@
+{
+  "base": "0.132.0",
+  "built_by": "github-actions:40841543738",
+  "channel": "personal",
+  "commit": "75502624c1202d3602de8c2fbcd4f6d29adf01ee",
+  "inputs_hash": "3cbfb63f751be4bca59ffd761063d4f345cee5f955541fa7bde1a57984f49685",
+  "rev": 1,
+  "upstream_sha": "0e3b02b55f9a3d84c683b05ee723057eec8188af",
+  "upstream_tag": "v0.132.0"
+}
