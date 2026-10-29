@@ -95,6 +95,9 @@ Glasshouse Home's **Last watched**, **App count** and **CEC addresses** switches
 While Glasshouse Home and its picture details (off by default) are on and the TV is out of standby, a read-only `videooutput/getStatus` subscription records the last video each app plays for the plate. It starts before the first Home visit and stops when either is switched off or the TV goes into standby. Recorded videos stay in memory until the server restarts. HDMI signal and picture-mode reads change no TV settings.
 
 Back on Glasshouse Home reads the TV's recent-app list and its snapshots.
+The saved `excludedRecents` list in `home.json` omits selected apps from this
+panel and blocks their preview images through Glasshouse's recent-image endpoint.
+It does not stop webOS taking snapshots or change LG's native Recents.
 Close and Close all stop only the selected listed apps, through
 `applicationManager/closeByAppId` for native apps and WebAppMgr's `killApp`
 for web apps, and confirm they have stopped before removing their cards with

@@ -293,6 +293,7 @@ function defaults() {
     // Apps moved off the Apps row into its More apps tile, in no order of
     // their own: the folder shows them in the row's.
     folder: [],
+    excludedRecents: [],
     channels: [],
     hintSeen: false,
     searchHintSeen: false,
@@ -371,6 +372,7 @@ function normalise(raw) {
   // A hidden app shows nowhere, so it is not also in the folder.
   var appHidden = d.hidden.app;
   d.folder = stringList(raw.folder).filter(function (id) { return appHidden.indexOf(id) === -1; });
+  d.excludedRecents = stringList(raw.excludedRecents);
   d.enabled = raw.enabled === true;
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
@@ -499,6 +501,7 @@ function setLayout(body, cb) {
     sort: perRow(body.sort, c.sort),
     hidden: perRow(body.hidden, c.hidden),
     folder: body.folder !== undefined ? body.folder : c.folder,
+    excludedRecents: body.excludedRecents !== undefined ? body.excludedRecents : c.excludedRecents,
     // A moved Channels row reorders the channels themselves.
     channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
@@ -539,6 +542,7 @@ function setLayout(body, cb) {
 
 function layoutOf(c) {
   return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, folder: c.folder, channels: c.channels, hintSeen: c.hintSeen,
+    excludedRecents: c.excludedRecents,
     searchHintSeen: c.searchHintSeen, picture: c.picture, search: c.search, recommended: c.recommended,
     fade: c.fade, hideUnused: c.hideUnused, showClock: c.showClock, rowsBottom: c.rowsBottom, view: c.view,
     showLastOn: c.showLastOn, showAppCount: c.showAppCount, showCec: c.showCec, colours: c.colours,
@@ -1964,7 +1968,7 @@ function init(opts) {
   if (opts.stateDir) stateDir = opts.stateDir;
   wallpapers.init(stateDir);
   recent.init(stateDir, opts.now);
-  recentApps.init({ luna: lunaFn });
+  recentApps.init({ luna: lunaFn, excluded: function () { return readConfig().excludedRecents; } });
   recommended.init({ luna: lunaFn });
   search.init({ luna: lunaFn, Subscription: opts.Subscription, apps: launchPoints,
     opened: function (id) { noteOpened('app', id); }, enabled: function () { return readConfig().search; },

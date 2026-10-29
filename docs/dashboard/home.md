@@ -227,3 +227,14 @@ a failed discovery keeps the last good title.
 It is offered on webOS 9 (LG's webOS 24), where it has been tried on a C2, and as an [experimental feature](../experimental.md#home-screen-layout-on-webos-10) on webOS 10 (LG's webOS 25), where it has been tried on a C2 with webOS 10.3.1. webOS 3 and 4 have a much plainer Home screen, so they do not have it. A webOS 8 TV may have the same home app as webOS 9, and webOS 11 a layout of its own; neither is offered it until one has been tried.
 
 On webOS 10 the section has a switch at the top, with its warning, and nothing in it changes until that is on. The parts that can be switched off there are the **Side buttons** (profile, notifications, settings and search), the **Quick Cards** and the **Recommended shelf**. The banner stays.
+
+### Exclude apps from Recents
+
+`excludedRecents` in `/var/lib/tvweb/home.json` is a list of application IDs
+that must not appear in Glasshouse Home's recent-app panel. It defaults to `[]`.
+The authenticated `POST /api/home/layout` accepts the same field; unrelated
+layout edits preserve it. For example: `{"excludedRecents":["private.app.id"]}`.
+This leaves Apps-row visibility unchanged and prevents the recent-image endpoint
+from serving those apps' cached previews, including immediately after an edit.
+It does not disable webOS screenshot creation or change LG's native Recents.
+Do not use `hidden.app` for this: hiding the launcher tile is a separate choice.

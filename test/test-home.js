@@ -263,6 +263,23 @@ function next() {
   s.fn(function () { console.log('  ✓ ' + s.name); next(); });
 }
 
+step('Recents exclusions are normalised, saved, preserved and reloaded', function (done) {
+  start({ excludedRecents: ['private.app', 'private.app', 7, ''] });
+  home.setLayout({ excludedRecents: ['other.app', 'other.app', null] }, function (r) {
+    assert.deepEqual(r.layout.excludedRecents, ['other.app']);
+    home.setLayout({ picture: false }, function (r2) {
+      assert.deepEqual(r2.layout.excludedRecents, ['other.app']);
+      var saved = JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8'));
+      assert.deepEqual(saved.excludedRecents, ['other.app']);
+      start(saved);
+      home.setLayout({}, function (r3) {
+        assert.deepEqual(r3.layout.excludedRecents, ['other.app']);
+        done();
+      });
+    });
+  });
+});
+
 step('a layout saved from a dashboard changes the version the view\'s heartbeat brings', function (done) {
   start(null);
   var before = home.beat().layoutVersion;
