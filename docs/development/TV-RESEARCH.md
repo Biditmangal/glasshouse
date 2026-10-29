@@ -100,6 +100,12 @@ controller uses the input's `lastUniqueId`, or its first SIMPLINK device.
 On HDMI 2 with no remembered source, this selected the STEREO 70s receiver
 (ID 5), leaving the PS5 (ID 8, physical address 2.4.0.0) asleep.
 
+`lastUniqueId` follows each selection at once: on 27 October 2026, launching
+HDMI 2 with the PS5's ID set it to 8, with the receiver's ID to 5, and a
+later plain HDMI 2 launch left it at 5. It is the TV's own record of which
+device on a port was last chosen. Whether the PS5 waking itself (One Touch
+Play) updates it was not tested.
+
 On 20 October 2026, with the PS5 confirmed in rest mode, switching through
 HDMI 4 and Home then launching HDMI 2 with its device ID woke it. CEC history
 showed `Set Stream Path` to 2.4.0.0 and the PS5 replying `Report Power Status`

@@ -59,6 +59,8 @@ Glasshouse Home displays a clock and date (following the TV's 12-hour or 24-hour
 
     **Last watched** (the top strip and the marker on that input's tile), **App count** (the "4 of 18 shown" beside Apps) and **CEC addresses** (on each input tile) are on by default, and each can be switched off from either dashboard's Home tab.
 
+    Behind a receiver, Last watched names the device the TV last selected on that port, such as the console rather than the receiver, and marks only its tile. Where the TV has not recorded one, every device on the port is named.
+
     The top strip stays empty until the saved layout loads. Switching **Last watched** off leaves the clock in place.
 
 -   **Clock and rows along the bottom**

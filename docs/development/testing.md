@@ -219,6 +219,9 @@ Home recovery checks cover a switch-off cut short, failed layout restoration and
 `test-home.js` also checks LG's native CEC launch contract: a receiver and a
 console on the same port select their own device IDs, a direct source selects
 its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
+Last watched on that port names the device the TV last selected there, read
+fresh past the cached device list, and every device on the port when the TV
+has not recorded one.
 
 `test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, an uploaded JPEG survives reinitialisation and is served with its image type, and one time of day's picture is removed alone, an unknown one refused. With the download stubbed, a chosen set is fetched from its tag and not again once on the TV, the owner's own pictures are kept while it shows, a picture that fails its checksum or download is not kept and leaves the choice as it was, and an older install's four example pictures become the landscape set while other uploads become the owner's own. The dashboard check chooses **Your own**, then Morning and uploads to it, preparing a PNG as JPEG, shows the pending upload in a second tab and the picture once done, drops an image on Evening, removes Morning alone and then all of them.
 

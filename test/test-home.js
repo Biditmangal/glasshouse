@@ -350,6 +350,32 @@ step('device tiles use LG\'s CEC selection contract, or open the port without a 
   })();
 });
 
+step('last watched on a receiver\'s port is the device the TV last selected there', function (done) {
+  start(null);
+  var hdmi2 = { id: 'HDMI_2', hdmiPlugIn: true, subList: [
+    { id: 'SIMPLINK', depth: 1, physicalAddress: 8192, uniqueId: 5, osdName: 'STEREO 70s' },
+    { id: 'SIMPLINK', depth: 2, physicalAddress: 9216, uniqueId: 8, osdName: 'PlayStation 5' }
+  ] };
+  tv.devices = [hdmi2];
+  foreground('com.webos.app.hdmi2');
+  // The device list stays cached between reads; the selection must not.
+  var cases = [
+    { last: 8, title: 'PlayStation 5', via: 'STEREO 70s', devices: ['hdmi2:playstation-5'] },
+    { last: 5, title: 'STEREO 70s', via: null, devices: ['hdmi2:stereo-70s'] },
+    { last: -1, title: 'STEREO 70s / PlayStation 5', via: null, devices: ['hdmi2:stereo-70s', 'hdmi2:playstation-5'] },
+    { last: 3, title: 'STEREO 70s / PlayStation 5', via: null, devices: ['hdmi2:stereo-70s', 'hdmi2:playstation-5'] }
+  ];
+  (function nextCase() {
+    var c = cases.shift();
+    if (!c) return done();
+    hdmi2.lastUniqueId = c.last;
+    home.now(function (r) {
+      assert.deepEqual([r.kind, r.port, r.title, r.via, r.devices], ['input', 2, c.title, c.via, c.devices], 'lastUniqueId ' + c.last);
+      nextCase();
+    });
+  })();
+});
+
 step('channels are added and removed, never hidden, and their list is their order', function (done) {
   // A file from before: a moved Channels row and a hidden channel.
   start({ channels: ['a', 'b', 'c'], order: { app: [], dev: [], ch: ['c', 'a', 'b'] }, hidden: { app: [], dev: [], ch: ['b'] } });

@@ -870,20 +870,42 @@ function programme(r) {
 }
 
 /*
+ * The uniqueId of the CEC device the TV last selected on an HDMI port, or
+ * null. Read fresh, not from the device list's cache: it changes as soon as a
+ * tile or LG's input picker selects another device behind a receiver.
+ */
+function selectedOnPort(port, cb) {
+  luna('com.webos.service.eim/getAllInputStatus', {}, function (r) {
+    var picked = null;
+    (r && isArray(r.devices) ? r.devices : []).forEach(function (d) {
+      if (d && d.id === 'HDMI_' + port && typeof d.lastUniqueId === 'number' && d.lastUniqueId > 0) picked = d.lastUniqueId;
+    });
+    cb(picked);
+  });
+}
+
+/*
  * What was in front before the view: the top strip's "what is on". An input
- * names the devices on it; Live TV, the channel it was last on.
+ * names the device the TV last selected on it, or every device on it when
+ * the TV has not said; Live TV, the channel it was last on.
  */
 function now(cb) {
   if (!lastSource) return cb({ kind: null });
   var id = lastSource.appId;
   var m = /^com\.webos\.app\.hdmi(\d)$/.exec(id);
   if (m) {
+    var port = +m[1], since = lastSource.at;
     return devices(function (devs) {
-      var on = (devs || []).filter(function (d) { return d.port === +m[1]; });
-      cb({
-        kind: 'input', appId: id, since: lastSource.at, port: +m[1],
-        title: on.length ? on.map(function (d) { return d.name; }).join(' / ') : null,
-        devices: on.map(function (d) { return d.id; })
+      selectedOnPort(port, function (picked) {
+        var on = (devs || []).filter(function (d) { return d.port === port; });
+        var chosen = on.filter(function (d) { return d.uniqueId === picked; });
+        if (chosen.length) on = chosen;
+        cb({
+          kind: 'input', appId: id, since: since, port: port,
+          title: on.length ? on.map(function (d) { return d.name; }).join(' / ') : null,
+          via: on.length === 1 ? on[0].via : null,
+          devices: on.map(function (d) { return d.id; })
+        });
       });
     });
   }

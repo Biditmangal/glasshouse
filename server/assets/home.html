@@ -737,7 +737,8 @@ html.faded #stage{opacity:0}
         hiddenLabel + folderLabel + '</div>';
     },
     dev: function (d, i) {
-      var last = layout.showLastOn !== false && lastOn.kind === 'input' && lastOn.port === d.port;
+      var last = layout.showLastOn !== false && lastOn.kind === 'input' && lastOn.port === d.port &&
+        (!lastOn.devices || lastOn.devices.indexOf(d.id) !== -1);
       var cls = 'tile dev' + (last ? ' last' : '') + (d.unused ? ' unused' : '') + (hidden('dev', d.id) ? ' hidden' : '');
       var path = d.unused ? '' : d.via ? t('home.dev.through', 'HDMI {port}, through {via}', { port: d.port, via: d.via })
                        : t('home.dev.port', 'HDMI {port}', { port: d.port });
@@ -1101,7 +1102,8 @@ html.faded #stage{opacity:0}
     } else if (lastOn.kind === 'input') {
       kind = t('home.now.lastWatched', 'Last watched');
       title = lastOn.title || t('home.dev.port', 'HDMI {port}', { port: lastOn.port });
-      via = t('home.dev.port', 'HDMI {port}', { port: lastOn.port });
+      via = lastOn.via ? t('home.dev.through', 'HDMI {port}, through {via}', { port: lastOn.port, via: lastOn.via })
+        : t('home.dev.port', 'HDMI {port}', { port: lastOn.port });
     } else if (lastOn.kind === 'channel' && lastOn.channel) {
       kind = t('home.now.lastWatched', 'Last watched');
       title = lastOn.channel.name;
