@@ -91,7 +91,7 @@ function freshTv() {
   fs.writeFileSync(path.join(layoutDir, 'home_layoutShelfView.xml'), CUSTOM_LAYOUT);
   fs.mkdirSync(checkpointDir);
   fs.mkdirSync(path.join(checkpointDir, LG_HOME));
-  tv = { settings: copy(ORIGINAL), events: [], launched: [], launches: [], samType: 'native', samCategory: null, samRefuses: false,
+  tv = { settings: copy(ORIGINAL), events: [], preload: [], launched: [], launches: [], samType: 'native', samCategory: null, samRefuses: false,
          oldAppInstalled: false, mountFails: false };
   lgRunning(true);
   wamRunning(true);
@@ -148,11 +148,15 @@ function exec(file, args, opts, cb) {
 
 function kill(pid) {
   tv.events.push('stop LG ' + pid);
-  lgRunning(false);
+  rmrf(path.join(procDir, String(pid)));
 }
 
 function luna(uri, p, cb) {
   var r = { returnValue: true };
+  // Kept apart from tv.events, which other steps compare whole.
+  if (uri === 'com.webos.service.preloadmanager/setPreloadPolicy') {
+    tv.preload.push(p.application.id + ' ' + p.application.isEnabled);
+  }
   if (uri === 'com.webos.service.settings/getSystemSettings') {
     if (tv.settingsReadFails) return process.nextTick(function () { cb({ returnValue: false }); });
     // As a C1 on webOS 6.4.0 answers for defaultApps, which it does not keep at all.
@@ -1099,6 +1103,57 @@ step('on webOS 6.4.0, which keeps no defaultApps, switching on reads that as uns
       assert.ok(r.ok, r.error);
       assert.deepEqual(errors, [], 'the Home key\'s target read without an error');
       home.disable(function () { done(); });
+    });
+  });
+});
+
+// #1042: on a G3 (webOS 11.2.0) the preload manager started LG's Flutter Home
+// again behind Glasshouse Home, and Home presses then opened nothing.
+step('on webOS 11 LG\'s Flutter Home is kept from coming back while Glasshouse Home holds its place, and let back after', function (done) {
+  start(null, { webosVersion: '11.2.0', allowExperimental: function () { return true; }, lgHomeWatchMs: 40 });
+  tv.nudgeIgnored = true;
+  lgRunning(false);
+  function flutterHome(pid) {
+    var dir = path.join(procDir, String(pid));
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, 'cmdline'), '/usr/bin/flutter-client\0-i\0' + LG_HOME + '\0');
+  }
+  flutterHome(4401);
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    assert.deepEqual(tv.preload, [LG_HOME + ' false'], 'the preload manager told not to keep LG\'s Home');
+    assert.ok(tv.events.indexOf('stop LG 4401') !== -1);
+    // The preload manager starts it again.
+    flutterHome(4402);
+    wait(120, function () {
+      assert.ok(tv.events.indexOf('stop LG 4402') !== -1, 'stopped again');
+      home.disable(function (r2) {
+        assert.ok(r2.ok, r2.error);
+        assert.strictEqual(tv.preload[tv.preload.length - 1], LG_HOME + ' true', 'let back with the place');
+        tv.events = [];
+        flutterHome(4403);
+        wait(120, function () {
+          assert.ok(tv.events.indexOf('stop LG 4403') === -1, 'LG\'s Home left alone once it has its place');
+          done();
+        });
+      });
+    });
+  });
+});
+
+step('on webOS 9 and 10 the preload manager is left as it is', function (done) {
+  start(null, {});
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    assert.deepEqual(tv.preload, []);
+    home.disable(function () {
+      start(null, { webosVersion: '10.3.1' });
+      tv.nudgeIgnored = true;
+      home.enable(function (r10) {
+        assert.ok(r10.ok, r10.error);
+        assert.deepEqual(tv.preload, [], 'webOS 10 held its place without it');
+        home.disable(function () { done(); });
+      });
     });
   });
 });
