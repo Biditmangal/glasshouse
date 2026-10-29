@@ -563,6 +563,36 @@ together can finish out of order. A key schedules no telemetry read of its own;
 an app it opens reaches Home Assistant through the foreground-app subscription.
 Each key's wait and run time is logged at debug level.
 
+### Where the dashboard's keyboard box types
+
+`sendText` with the box's whole content in `full` chooses a route per call
+(`chooseTypingRoute` in `controls.js`, the adapters in `typing.js`); without
+`full`, as Home Assistant and older dashboards call it, it is always LG's input
+method. The choice is held for 2 s, and dropped after a failure or an Enter.
+
+1. LG's input method, when LG's keyboard window is up (webOS 6+) or
+   `ime/registerRemoteKeyboard` answers `currentWidget.focus` true. That call
+   is made with the subscription in the payload and `-n 1`, so `luna-send`
+   leaves with the first answer and nothing stays registered. Also the route
+   when the foreground app cannot be read.
+2. StremioBrew (`tv.stremiobrew.app`): the whole text to its phone-typing
+   address, with the token from `/phoneurl` kept and read again once on a failure.
+3. A web app's page: the page on 127.0.0.1:9998 whose address holds the app id,
+   `https://www.youtube.com/tv` for `youtube.leanback.v4`, or the only page when
+   `getAppInfo` says the app is a web app. The server speaks a minimal
+   WebSocket (masked client frames, 16-bit lengths) to the page and sends
+   `Input.dispatchKeyEvent` one command at a time, waiting for each answer
+   (3 s without one fails). Backspace is `rawKeyDown`/`keyUp` with key code 8,
+   a character a `keyDown` with its text, Enter code 13. `devtools.js` closes
+   the port to the network only, so loopback keeps working; with Developer Mode
+   off nothing listens and the box falls to the next route.
+4. Key presses on `networkinput/test/sendKeyCode`, for native apps: lowercase
+   letters, digits and unshifted symbols, 50 at a time, Enter as OK.
+
+The answer is `{ ok, error, method, sent }`. `sent` is there for routes that go
+one key at a time (the page and key presses), and tells the dashboard to empty
+its box on a failure, since what the TV received is unknown.
+
 ## Remote keys through the compositor's filter chain
 
 The compositor, `surface-manager`, does not act on remote keys itself. It reads
