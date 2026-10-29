@@ -14,6 +14,17 @@ Nothing on the read-only root filesystem is written. Everything below other
 than the server's own files happens only when the owner switches it on, and the
 riskier controls ask for confirmation in the dashboard first.
 
+## Bluetooth audio
+
+The Audio tab lists the audio devices paired with the TV (LG's
+`btaudiosrc` service) when it opens or on **Refresh**. **Connect** and
+**Disconnect** ask that service to connect or drop one listed device, and only
+when the owner presses the button. Nothing is paired, unpaired or searched for,
+the TV's Bluetooth is not switched, and the dashboard does not edit firmware or
+configuration files. LG's service handles the connection and may change the
+sound output. Connecting while another device is connected asks for confirmation.
+The resulting audio routing has not yet been verified on a TV.
+
 ## Files and startup
 
 | Change | Where | Undone by |

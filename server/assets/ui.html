@@ -546,6 +546,17 @@
   <div class="pv-sec" id="audio-sound-head" data-t="adv.sound">Sound</div>
   <div class="prot-table" id="audio-settings" data-reload="loadAudio"></div>
 
+  <div id="audio-bt" hidden>
+    <div class="pv-sec" data-t="audio.bt.title">Bluetooth audio</div>
+    <div class="audio-head">
+      <div class="pv-sub" data-t="audio.bt.desc">Headphones and speakers already paired with the TV. Pair or remove them in LG’s own settings.</div>
+      <button type="button" class="pill idle" id="audio-bt-refresh" onclick="loadAudioBluetooth()" data-t="audio.refresh">Refresh</button>
+    </div>
+    <div class="prot-table" id="audio-bt-list" aria-busy="true"></div>
+    <div class="sub" id="audio-bt-note" role="status"></div>
+    <div class="err-note audio-error" id="audio-bt-error" role="alert" hidden></div>
+  </div>
+
   <div class="err-note audio-error" id="audio-error" role="alert" hidden></div>
   <details class="pv-d audio-more" id="audio-more">
   <summary><span class="audio-fold"><span data-t="audio.pathTitle">Soundbar and receiver</span><span class="pv-sub" data-t="audio.pathDesc">Whether a soundbar or receiver is connected over HDMI ARC or eARC, and which audio formats the TV and the receiver say they support. Useful when Dolby Atmos or DTS doesn’t come through.</span></span></summary>

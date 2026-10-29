@@ -1874,3 +1874,25 @@ came at 50 s: about 9 s from the server answering to the view drawn. The
 first Home press after a reboot took up to 13 s on a CX (webOS 5.6.2), so a
 fixed wait from the server's start is too short for slower TVs; the page's
 own requests to the server show it is running.
+
+## Paired Bluetooth audio devices (55UM7290PTD, webOS 4.10.2)
+
+Read only, from `luna-send`:
+
+- `com.webos.service.btaudiosrc/getPairedDevices` with `{}` answered
+  `returnValue: true`, a `count` and `devices`, each with `address`, `name`,
+  `state` and `type`. The two paired devices, a soundbar and earbuds, were both
+  `type: "bt_audio"`; the one in use was `state: "connected"` and the other
+  `"disconnected"`.
+- `getConnectedDevice` with `{}` answered `connected: true` and the connected
+  device's `name`.
+- `getDeviceStatus` with `{}` was refused as not matching its schema; the
+  request it wants has not been found.
+- The service's permission list names `connect`, `disconnect`,
+  `getDeviceStatus`, `getConnectedDevice`, `getPairedDevices`,
+  `removePairedDevice`, `startDiscovery`, `cancelDiscovery` and
+  `notifyUserSelection`, among others.
+- The `btaudiosrc` binary has handlers for `connect` and `disconnect` and a
+  request schema with a required string `address`. Which handler uses it was
+  not read from the binary, and neither method has been called here, so what a
+  `connect` or `disconnect` with `{address}` does on this TV is not known.
