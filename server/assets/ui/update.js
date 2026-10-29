@@ -2,10 +2,30 @@
 
 // Releases are cut on the upstream repo, so the tag link points there.
 const REPO = 'https://github.com/rorygallagher2024/glasshouse';
+// Personal builds are released from this repository, and nowhere else.
+const PERSONAL_REPO = 'https://github.com/Biditmangal/glasshouse';
 
 // A git build's version carries its commit as build metadata, 0.80.1+55e51e5 or
 // 0.80.1+55e51e5.dirty; releases and the updater know only the part before it.
 const bareVersion = v => String(v || '').split('+')[0];
+
+// A personal build is 0.132.0+personal.2.1a2b3c4: its revision and commit.
+const PERSONAL_BUILD = /^(\d+\.\d+\.\d+)\+personal\.(\d+)(?:\.([0-9a-f]{7}))?$/;
+
+// What a build is called once an install is done: the version, with the
+// revision on the personal channel. The server says so; an older one does not.
+const installedId = d => d.installedId || bareVersion(d.installed);
+
+// Where a version's page is: an official release or commit, or a personal one.
+function versionLink(v) {
+  const p = PERSONAL_BUILD.exec(v);
+  if (p) {
+    return p[3] ? PERSONAL_REPO + '/commit/' + p[3]
+      : PERSONAL_REPO + '/releases/tag/v' + p[1] + '-personal.' + p[2];
+  }
+  const commit = v.split('+')[1];
+  return commit ? REPO + '/commit/' + commit.split('.')[0] : REPO + '/releases/tag/v' + v;
+}
 
 function setVersion(v) {
   const el = q('version');
@@ -14,8 +34,7 @@ function setVersion(v) {
   el.dataset.v = v;
   el.textContent = 'v' + v;
   // A git build's version may have no release yet, so it links to its commit.
-  const commit = v.split('+')[1];
-  el.href = commit ? REPO + '/commit/' + commit.split('.')[0] : REPO + '/releases/tag/v' + v;
+  el.href = versionLink(v);
   el.hidden = false;
   // It came back on a different version, so an upgrade landed: the "newer
   // version" hint beside this is now about the one that is running.
@@ -66,6 +85,19 @@ function renderUpdate(d) {
     on: d.autoCheck,
     disabled: !d.writable
   });
+
+  const chan = q('upd-channel');
+  if (chan && d.channel) {
+    const personal = d.channel === 'personal';
+    updateToggle('upd-channel', {
+      cls: personal ? 'warn' : 'idle',
+      label: personal ? t('common.on', 'On') : t('common.off', 'Off'),
+      on: personal,
+      // Switching on is not offered to a Homebrew Channel install, but off always is,
+      // for one whose config was edited by hand. Nor while a check is running.
+      disabled: !d.writable || working || (!d.channelChoice && !personal)
+    });
+  }
 
   // Answers from actions that predate the setting leave it as it was.
   if (typeof d.tvUpdatesBlocked === 'boolean') {
@@ -181,7 +213,7 @@ function renderUpdate(d) {
   const vn = q('version-new');
   if (d.available) {
     vn.textContent = '\u2192 v' + d.latest;
-    vn.href = REPO + '/releases/tag/v' + d.latest;
+    vn.href = PERSONAL_BUILD.test(d.latest) ? versionLink(d.latest) : REPO + '/releases/tag/v' + d.latest;
     vn.hidden = false;
   } else {
     vn.hidden = true;
@@ -265,7 +297,7 @@ function noteArrival(d) {
   p.delete('updated');
   p.delete('rolledback');
   history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
-  if (bareVersion(d.installed) === (up || back)) {
+  if (installedId(d) === (up || back)) {
     updArrival = up ? t('server.arrived.updated', 'Updated to v{version}.', { version: up })
       : t('server.arrived.rolledBack', 'Rolled back to v{version}.', { version: back });
     q('upd-msg').textContent = updArrival;
@@ -347,7 +379,7 @@ async function awaitRestart(version, doneLabel, param, confirmed, oldVersion, pr
   for (;;) {
     await new Promise(res => setTimeout(res, 1500));
     const d = await fetchJson(api('/api/update'), {}, 3000);
-    if (d && bareVersion(d.installed) === version) break;
+    if (d && installedId(d) === version) break;
     if (d && !confirmed && d.installed === oldVersion && !/checking|downloading|installing/.test(d.state)) {
       updRestarting = false;
       updBusy = false;
@@ -446,6 +478,16 @@ async function toggleTvUpdates() {
   b.disabled = true;
   const r = await sendCommand('blockTvUpdates', !b.dataset.on);
   if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+async function toggleChannel() {
+  const b = q('upd-channel');
+  b.disabled = true;
+  const r = await sendCommand('updateChannel', b.dataset.on ? 'official' : 'personal');
+  if (r && r.ok) return renderUpdate(r);
+  // Re-rendering writes the message line, so the reason goes in after it.
+  await loadUpdate();
+  if (r && r.ok === false && r.error) q('upd-msg').textContent = r.error;
 }
 
 async function toggleAutoCheck() {

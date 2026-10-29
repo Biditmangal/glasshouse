@@ -9,6 +9,7 @@ var zlib = require('zlib');
 var execFile = require('child_process').execFile;
 var fetch = require('./fetch');
 var hashFile = require('./installer').hashFile;
+var personal = require('./personal');
 var probeFetch = fetch.probeFetch;
 var execErr = fetch.execErr;
 
@@ -38,7 +39,9 @@ var UPDATE = {
   checked: 0,       // last check that got an answer
   attempted: 0,     // last check, answered or not
   error: null,
-  busy: false
+  busy: false,
+  channel: 'official',   // the channel `latest` was read from
+  manifest: null         // the personal release behind `latest`, on that channel
 };
 
 var config = {};
@@ -46,6 +49,8 @@ var config = {};
 // version with build metadata when deploy.sh left a build.json.
 var currentVersion = '';
 var shownVersion = '';
+// What personal.json says of the installed build, or null for an official one.
+var installedPersonal = null;
 var writeSettingsFn = null;
 var publishUpdateFn = null;
 var publishDiscoveryFn = null;
@@ -92,6 +97,8 @@ function verNewer(a, b) {
  * the bare version.
  */
 function displayVersion(version, dir) {
+  var id = personal.readIdentity(dir, version);
+  if (id) return personal.displayOf(id);
   var file = path.join(dir, 'build.json');
   var build = readJson(file, null);
   if (!build || !/^[0-9a-f]{4,40}$/.test(build.commit)) return version;
@@ -113,8 +120,43 @@ function declaredVersion(file) {
 
 function rollbackVersion() {
   try {
-    return declaredVersion(path.join(prevDir, 'tvweb.js'));
+    var v = declaredVersion(path.join(prevDir, 'tvweb.js'));
+    if (!v) return null;
+    var id = personal.readIdentity(prevDir, v);
+    return id ? personal.idString(id.base, id.rev) : v;
   } catch (e) { return null; }
+}
+
+// Official until the person switches it, and only the two names count.
+function channel() {
+  return config.update && config.update.channel === 'personal' ? 'personal' : 'official';
+}
+
+// What the installed build is called: the version, with the personal revision
+// when personal.json on disk says this is a personal build. It describes the
+// files, whichever channel is being checked, because the page waits for it
+// after an install or a rollback.
+function installedId() {
+  return installedPersonal
+    ? personal.idString(installedPersonal.base, installedPersonal.rev) : currentVersion;
+}
+
+// What Home Assistant's update entity is told is installed. It compares this
+// with the latest version of the channel being checked, so a personal build
+// is named as one only while the personal channel is selected; the official
+// channel never offers a "newer" version for it to disagree with.
+function haInstalledId() {
+  return channel() === 'personal' ? installedId() : currentVersion;
+}
+
+// Whether what the last check found is newer than what is installed.
+function latestIsNewer() {
+  if (!UPDATE.latest) return false;
+  if (UPDATE.channel === 'personal') {
+    return !!UPDATE.manifest && personal.newer(UPDATE.manifest,
+      { base: currentVersion, rev: installedPersonal ? installedPersonal.rev : 0 });
+  }
+  return verNewer(UPDATE.latest, currentVersion);
 }
 
 function updateSummary() {
@@ -122,8 +164,12 @@ function updateSummary() {
     ok: true,
     state: UPDATE.state,
     installed: shownVersion,
+    // What the installed files are called, whichever channel is selected.
+    installedId: installedId(),
+    channel: channel(),
+    channelChoice: !viaHomebrewChannel(),
     latest: UPDATE.latest,
-    available: !!(UPDATE.latest && verNewer(UPDATE.latest, currentVersion)),
+    available: latestIsNewer(),
     url: UPDATE.url,
     notes: UPDATE.notes,
     whatsNew: UPDATE.whatsNew,
@@ -148,6 +194,70 @@ function findBin(name) {
   return null;
 }
 
+function clearFound() {
+  UPDATE.latest = null;
+  UPDATE.url = null;
+  UPDATE.notes = null;
+  UPDATE.whatsNew = [];
+  UPDATE.whatsNewMore = 0;
+  UPDATE.manifest = null;
+  UPDATE.checked = 0;
+  UPDATE.attempted = 0;
+  UPDATE.channel = channel();
+}
+
+/*
+ * The personal channel's check: one manifest, at a fixed address, that names
+ * the latest personal release. Its fields are matched strictly (personal.js).
+ */
+function checkPersonal(cb) {
+  probeFetch(personal.PERSONAL_MANIFEST_URL, null, function (err, body) {
+    if (err) {
+      setUpdateState(err.offline ? 'offline' : 'error', err.message);
+      return cb(err, updateSummary());
+    }
+    var parsed = personal.parseManifest(body);
+    if (!parsed.manifest) {
+      var bad = new Error(msg('srv.update.badPersonalManifest', 'the personal release has no usable manifest ({why})', { why: parsed.error }));
+      setUpdateState('error', bad.message);
+      return cb(bad, updateSummary());
+    }
+    var man = parsed.manifest;
+    UPDATE.manifest = man;
+    UPDATE.latest = personal.idString(man.base, man.rev);
+    UPDATE.url = personal.PERSONAL_RELEASES + personal.tagOf(man.base, man.rev);
+    UPDATE.notes = null;
+    UPDATE.whatsNew = [];
+    UPDATE.whatsNewMore = 0;
+    UPDATE.channel = 'personal';
+    UPDATE.checked = Date.now();
+    setUpdateState(latestIsNewer() ? 'available' : 'current');
+    console.log('update: installed v' + shownVersion + ', latest personal v' + UPDATE.latest +
+                ' (' + UPDATE.state + ', via ' + fetch.client() + ')');
+    cb(null, updateSummary());
+  });
+}
+
+function setChannel(name, cb) {
+  if (name !== 'official' && name !== 'personal') return cb({ ok: false, error: 'unknown update channel' });
+  if (name === 'personal' && viaHomebrewChannel()) {
+    return cb({ ok: false, error: msg('srv.update.personalViaHbc', 'the personal channel updates the server in place, which a Homebrew Channel install does not allow') });
+  }
+  if (UPDATE.busy) return cb({ ok: false, error: msg('srv.update.busy', 'an update is already running') });
+  // A check under way would report the old channel's answer on the new one.
+  if (UPDATE.state === 'checking') return cb({ ok: false, error: msg('srv.update.checkRunning', 'a check is running; try again when it has finished') });
+  if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
+  writeSettingsFn({ update: { channel: name } }, function (err) {
+    if (err) return cb({ ok: false, error: msg('srv.saveSettingFailed', 'could not save the setting: {error}', { error: err.message }) });
+    config.update = config.update || {};
+    config.update.channel = name;
+    clearFound();
+    console.log('update: channel set to ' + name);
+    setUpdateState('idle');
+    checkForUpdate(false, function () { cb(updateSummary()); });
+  });
+}
+
 /*
  * Ask GitHub for the latest release, unless a recent enough answer is already
  * held: unauthenticated calls are limited to 60 an hour from one address, so
@@ -156,6 +266,8 @@ function findBin(name) {
 function checkForUpdate(force, cb) {
   cb = cb || function () {};
   if (UPDATE.state === 'checking') return cb(null, updateSummary());
+  // What was found on the other channel says nothing about this one.
+  if (UPDATE.channel !== channel()) clearFound();
   var minAge = typeof force === 'number' ? force : force ? 10000 : 3600000;
   if (UPDATE.latest && (Date.now() - UPDATE.checked) < minAge) return cb(null, updateSummary());
   // A tab being opened also lets a failed attempt stand, so an offline TV is not
@@ -164,6 +276,7 @@ function checkForUpdate(force, cb) {
 
   UPDATE.attempted = Date.now();
   setUpdateState('checking');
+  if (channel() === 'personal') return checkPersonal(cb);
   probeFetch(UPDATE_API, null, function (err, body) {
     if (err) {
       setUpdateState(err.offline ? 'offline' : 'error', err.message);
@@ -183,6 +296,7 @@ function checkForUpdate(force, cb) {
     UPDATE.whatsNew = found.whatsNew;
     UPDATE.whatsNewMore = found.more;
     UPDATE.checked = Date.now();
+    UPDATE.channel = 'official';
     setUpdateState(verNewer(UPDATE.latest, currentVersion) ? 'available' : 'current');
     console.log('update: installed v' + shownVersion + ', latest v' + UPDATE.latest +
                 ' (' + UPDATE.state + ', via ' + fetch.client() + ')');
@@ -380,11 +494,164 @@ function installReleasePackage(ver, done) {
   });
 }
 
+/*
+ * Puts the files of an unpacked release in place, the one step both channels
+ * share. The originals go to .previous first. When a personal build is
+ * involved (arriving, or leaving because an official release replaces it),
+ * .previous also records which files the update adds, so a rollback can remove
+ * them, and personal.json goes last: the identity of what is installed is
+ * never ahead of its files. If a file fails then, what was saved is put back.
+ */
+function installFiles(src, isPersonalBundle, fail, ok) {
+  var files = listFiles(src), installed = [], bad = null;
+  var identityFile = path.join(installDir, personal.PERSONAL_FILE);
+  var involved = isPersonalBundle || fs.existsSync(identityFile);
+  var skipped = { 'deploy.sh': 1, '50-tvweb.sh': 1 };
+  skipped[personal.PERSONAL_FILE] = 1;
+  rmrf(prevDir, function () {
+    if (involved) {
+      var added = [];
+      for (var j = 0; j < files.length; j++) {
+        if (skipped[files[j]]) continue;
+        if (!fs.existsSync(path.join(installDir, files[j]))) added.push(files[j]);
+      }
+      if (isPersonalBundle && !fs.existsSync(identityFile)) added.push(personal.PERSONAL_FILE);
+      try {
+        mkdirp(prevDir);
+        fs.writeFileSync(path.join(prevDir, personal.IDENTITY_FILE), JSON.stringify({ added: added }));
+      } catch (e) { return fail('could not record the rollback copy: ' + e.message); }
+    }
+    for (var i = 0; i < files.length; i++) {
+      var rel = files[i];
+      if (skipped[rel]) continue;
+      var dst = path.join(installDir, rel);
+      try {
+        if (fs.existsSync(dst)) {
+          var keep = path.join(prevDir, rel);
+          mkdirp(path.dirname(keep));
+          copyFile(dst, keep);
+        }
+        installFile(path.join(src, rel), dst, isExecutable(rel));
+        installed.push(rel);
+      } catch (e) { bad = rel + ': ' + e.message; break; }
+    }
+    if (!bad && involved) {
+      try {
+        if (fs.existsSync(identityFile)) {
+          mkdirp(prevDir);
+          copyFile(identityFile, path.join(prevDir, personal.PERSONAL_FILE));
+        }
+        if (isPersonalBundle) installFile(path.join(src, personal.PERSONAL_FILE), identityFile, false);
+        else fs.unlinkSync(identityFile);
+      } catch (e) { bad = personal.PERSONAL_FILE + ': ' + e.message; }
+    }
+    if (bad) {
+      if (involved) {
+        var undone = restorePrevious();
+        return fail('could not install ' + bad + (undone.error ? ' (and could not restore ' + undone.error.file + ')'
+                                                                : ' (v' + currentVersion + ' was put back)'));
+      }
+      return fail('could not install ' + bad + ' (v' + currentVersion + ' is in .previous)');
+    }
+
+    if (fs.existsSync(BOOT_HOOK) && fs.existsSync(path.join(src, '50-tvweb.sh'))) {
+      try {
+        installFile(path.join(src, '50-tvweb.sh'), BOOT_HOOK, true);
+      } catch (e) {
+        console.error('update: could not refresh the boot hook: ' + e.message);
+      }
+    }
+
+    var devAppIdx = '/media/developer/apps/usr/palm/applications/com.tvweb.dashboard/index.html';
+    if (fs.existsSync(devAppIdx) && fs.existsSync(path.join(src, 'assets/dashboard-app/index.html'))) {
+      try {
+        installFile(path.join(src, 'assets/dashboard-app/index.html'), devAppIdx, false);
+      } catch (e) {
+        console.error('update: could not refresh the installed app wrapper: ' + e.message);
+      }
+    }
+    ok(installed.length);
+  });
+}
+
+/*
+ * The personal channel's install: the bundle the manifest names, checked
+ * against the manifest's size and sha256 before it is opened, and its contents
+ * checked against the manifest after: only plain files, names that stay inside
+ * the server directory, and a tvweb.js and personal.json that agree with it.
+ */
+function installPersonalBundle(man, fail, done) {
+  var ver = personal.idString(man.base, man.rev);
+  rmrf(stageDir, function () {
+    try { mkdirp(stageDir); } catch (e) { return fail('could not create ' + stageDir + ': ' + e.message); }
+    var gz = path.join(stageDir, man.file);
+    console.log('update: downloading personal v' + ver);
+    fetch.download(personal.PERSONAL_DOWNLOAD + personal.tagOf(man.base, man.rev) + '/' + man.file, gz, {}, function (e2) {
+      if (e2) return fail(e2.message);
+      var size;
+      try { size = fs.statSync(gz).size; } catch (e) { return fail('could not read the download: ' + e.message); }
+      if (size !== man.size) return fail(msg('srv.update.badPersonalSize', 'the downloaded bundle is not the size the release names'));
+      hashFile(gz, function (e3, got) {
+        if (e3) return fail('could not read the download: ' + e3.message);
+        if (got !== man.sha256) return fail(msg('srv.update.badHash', 'the downloaded package does not match the release\'s checksum'));
+        var gzBuf;
+        try { gzBuf = fs.readFileSync(gz); } catch (e) { return fail('could not read the download: ' + e.message); }
+        inflate(gzBuf, function (e4, tarBuf) {
+          if (e4) return fail('the download did not arrive complete (' + e4.message + ')');
+          var tarBin = findBin('tar');
+          if (!tarBin) return fail('no tar on this TV to unpack the release with');
+          var tarFile = path.join(stageDir, 'bundle.tar');
+          try { fs.writeFileSync(tarFile, tarBuf); } catch (e) { return fail('could not stage the release: ' + e.message); }
+          var listOpts = { timeout: 60000, maxBuffer: 4 * 1024 * 1024 };
+          execFile(tarBin, ['-tf', tarFile], listOpts, function (e5, names, se5) {
+            if (e5) return fail('could not read the bundle: ' + execErr(e5, se5));
+            var nameList = String(names).split('\n').filter(Boolean);
+            var listErr = personal.checkListing(nameList);
+            if (listErr) return fail(listErr);
+            execFile(tarBin, ['-tvf', tarFile], listOpts, function (e6, detail, se6) {
+              if (e6) return fail('could not read the bundle: ' + execErr(e6, se6));
+              var typeErr = personal.checkTypes(String(detail).split('\n').filter(Boolean), nameList.length);
+              if (typeErr) return fail(typeErr);
+              setUpdateState('installing');
+              execFile(tarBin, ['-xf', tarFile, '-C', stageDir], { timeout: 120000 }, function (e7, _out7, se7) {
+                if (e7) return fail('could not unpack the release: ' + execErr(e7, se7));
+                var top = path.join(stageDir, personal.BUNDLE_TOP);
+                var walked;
+                try { walked = personal.walkBundle(top); } catch (e) { walked = { error: 'the bundle did not unpack: ' + e.message }; }
+                if (walked.error) return fail(walked.error);
+                if (walked.files.indexOf('tvweb.js') === -1 || walked.files.indexOf(personal.PERSONAL_FILE) === -1) {
+                  return fail('the personal bundle lacks its server or its identity file');
+                }
+                var decl = declaredVersion(path.join(top, 'tvweb.js'));
+                var id = personal.validIdentity(readJson(path.join(top, personal.PERSONAL_FILE), null));
+                if (decl !== man.base || !id || id.base !== man.base || id.rev !== man.rev || id.commit !== man.commit) {
+                  return fail('the downloaded bundle does not match its manifest');
+                }
+                installFiles(top, true, fail, function (count) {
+                  rmrf(stageDir, function () {
+                    setUpdateState('installed');
+                    console.log('update: installed personal v' + ver + ' over v' + shownVersion + ' (' + count + ' files)');
+                    done({ ok: true, updated: true, installed: installedId(), latest: ver, files: count });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+}
+
 function installUpdate(opts, cb) {
   if (typeof opts === 'function') { cb = opts; opts = {}; }
   opts = opts || {};
   if (installBusy(cb)) return;
   if (UPDATE.busy) return cb({ ok: false, error: msg('srv.update.busy', 'an update is already running') });
+  var onPersonal = channel() === 'personal';
+  if (onPersonal && viaHomebrewChannel()) {
+    return cb({ ok: false, error: msg('srv.update.personalViaHbc', 'the personal channel updates the server in place, which a Homebrew Channel install does not allow') });
+  }
   var asPackage = viaHomebrewChannel() && !opts.force;
   if (asPackage && !installPackageFn) {
     return cb({ ok: false, error: msg('srv.update.viaHbc', 'updates for this install come from the Homebrew Channel (or sideload the latest .ipk from GitHub releases)') });
@@ -410,13 +677,19 @@ function installUpdate(opts, cb) {
     if (err) return done({ ok: false, error: err.message });
     var ver = UPDATE.latest;
     if (!ver) return done({ ok: false, error: msg('srv.update.noInfo', 'no release information yet - check first') });
-    if (!verNewer(ver, currentVersion) && !opts.force) {
-      return done({ ok: true, updated: false, installed: currentVersion, latest: ver,
+    if (!latestIsNewer() && !opts.force) {
+      return done({ ok: true, updated: false, installed: onPersonal ? installedId() : currentVersion, latest: ver,
                     note: msg('srv.update.latest', 'already on the latest release') });
     }
 
     setUpdateState('downloading');
     if (asPackage) return installReleasePackage(ver, done);
+    if (onPersonal) {
+      if (UPDATE.channel !== 'personal' || !UPDATE.manifest) {
+        return fail(msg('srv.update.noInfo', 'no release information yet - check first'));
+      }
+      return installPersonalBundle(UPDATE.manifest, fail, done);
+    }
     rmrf(stageDir, function () {
       try { mkdirp(stageDir); } catch (e) { return fail('could not create ' + stageDir + ': ' + e.message); }
       var gz = path.join(stageDir, 'release.tar.gz');
@@ -434,7 +707,7 @@ function installUpdate(opts, cb) {
           try { fs.writeFileSync(tarFile, tarBuf); } catch (e) { return fail('could not stage the release: ' + e.message); }
 
           setUpdateState('installing');
-          execFile(tarBin, ['-xf', tarFile, '-C', stageDir], { timeout: 120000 }, function (e4, so, se) {
+          execFile(tarBin, ['-xf', tarFile, '-C', stageDir], { timeout: 120000 }, function (e4, _out4, se) {
             if (e4) return fail('could not unpack the release: ' + execErr(e4, se));
             var top = tarballTop(stageDir);
             var src = top ? path.join(top, 'server') : null;
@@ -448,47 +721,13 @@ function installUpdate(opts, cb) {
               return fail('the downloaded release declares v' + decl + ', not v' + ver);
             }
 
-            var files = listFiles(src), installed = [], bad = null;
-            rmrf(prevDir, function () {
-              for (var i = 0; i < files.length; i++) {
-                var rel = files[i];
-                if (rel === 'deploy.sh' || rel === '50-tvweb.sh') continue;
-                var dst = path.join(installDir, rel);
-                try {
-                  if (fs.existsSync(dst)) {
-                    var keep = path.join(prevDir, rel);
-                    mkdirp(path.dirname(keep));
-                    copyFile(dst, keep);
-                  }
-                  installFile(path.join(src, rel), dst, isExecutable(rel));
-                  installed.push(rel);
-                } catch (e) { bad = rel + ': ' + e.message; break; }
-              }
-              if (bad) return fail('could not install ' + bad + ' (v' + currentVersion + ' is in .previous)');
-
-              if (fs.existsSync(BOOT_HOOK) && fs.existsSync(path.join(src, '50-tvweb.sh'))) {
-                try {
-                  installFile(path.join(src, '50-tvweb.sh'), BOOT_HOOK, true);
-                } catch (e) {
-                  console.error('update: could not refresh the boot hook: ' + e.message);
-                }
-              }
-
-              var devAppIdx = '/media/developer/apps/usr/palm/applications/com.tvweb.dashboard/index.html';
-              if (fs.existsSync(devAppIdx) && fs.existsSync(path.join(src, 'assets/dashboard-app/index.html'))) {
-                try {
-                  installFile(path.join(src, 'assets/dashboard-app/index.html'), devAppIdx, false);
-                } catch (e) {
-                  console.error('update: could not refresh the installed app wrapper: ' + e.message);
-                }
-              }
-
+            installFiles(src, false, fail, function (count) {
               rmrf(stageDir, function () {
                 setUpdateState('installed');
                 console.log('update: installed v' + ver + ' over v' + shownVersion +
-                            ' (' + installed.length + ' files)');
+                            ' (' + count + ' files)');
                 done({ ok: true, updated: true, installed: currentVersion, latest: ver,
-                       files: installed.length });
+                       files: count });
               });
             });
           });
@@ -496,6 +735,33 @@ function installUpdate(opts, cb) {
       });
     });
   });
+}
+
+/*
+ * Puts back what .previous holds, and removes what the update added (named in
+ * .previous/.identity.json, which only an update involving a personal build
+ * writes). { files } or { error: { file, message } }.
+ */
+function restorePrevious() {
+  var files = listFiles(prevDir), restored = 0, i, rel;
+  for (i = 0; i < files.length; i++) {
+    rel = files[i];
+    if (rel === personal.IDENTITY_FILE) continue;
+    try {
+      installFile(path.join(prevDir, rel), path.join(installDir, rel), isExecutable(rel));
+      restored++;
+    } catch (e) { return { error: { file: rel, message: e.message } }; }
+  }
+  var record = readJson(path.join(prevDir, personal.IDENTITY_FILE), null);
+  var added = record && Array.isArray(record.added) ? record.added : [];
+  for (i = 0; i < added.length; i++) {
+    rel = added[i];
+    if (!personal.safeRelPath(rel)) continue;
+    try { fs.unlinkSync(path.join(installDir, rel)); } catch (e) {
+      if (e.code !== 'ENOENT') return { error: { file: rel, message: e.message } };
+    }
+  }
+  return { files: restored };
 }
 
 function rollbackUpdate(opts, cb) {
@@ -507,17 +773,12 @@ function rollbackUpdate(opts, cb) {
   }
   var was = rollbackVersion();
   if (!was) return cb({ ok: false, error: msg('srv.update.noRollback', 'nothing to roll back to') });
-  var files = listFiles(prevDir);
-  for (var i = 0; i < files.length; i++) {
-    try {
-      installFile(path.join(prevDir, files[i]), path.join(installDir, files[i]),
-                  isExecutable(files[i]));
-    } catch (e) {
-      return cb({ ok: false, error: msg('srv.update.restoreFailed', 'could not restore {file}: {error}', { file: files[i], error: e.message }) });
-    }
+  var r = restorePrevious();
+  if (r.error) {
+    return cb({ ok: false, error: msg('srv.update.restoreFailed', 'could not restore {file}: {error}', { file: r.error.file, error: r.error.message }) });
   }
-  console.log('update: rolled back to v' + was + ' (' + files.length + ' files)');
-  cb({ ok: true, restored: was, files: files.length });
+  console.log('update: rolled back to v' + was + ' (' + r.files + ' files)');
+  cb({ ok: true, restored: was, files: r.files });
 }
 
 function init(opts) {
@@ -531,6 +792,8 @@ function init(opts) {
     stageDir = path.join(installDir, '.update');
     prevDir = path.join(installDir, '.previous');
   }
+  installedPersonal = currentVersion ? personal.readIdentity(installDir, currentVersion) : null;
+  UPDATE.channel = channel();
   if (opts.writeSettings) writeSettingsFn = opts.writeSettings;
   if (opts.onUpdateChange) publishUpdateFn = opts.onUpdateChange;
   if (opts.onDiscoveryChange) publishDiscoveryFn = opts.onDiscoveryChange;
@@ -555,8 +818,15 @@ module.exports = {
   installUpdate: installUpdate,
   isBusy: isBusy,
   rollbackUpdate: rollbackUpdate,
+  // The file work of an install, exported so test/test-personal.js can run it on a real directory.
+  installFiles: installFiles,
+  restorePrevious: restorePrevious,
   scheduleUpdateChecks: scheduleUpdateChecks,
   setAutoCheck: setAutoCheck,
+  setChannel: setChannel,
+  channel: channel,
+  installedId: installedId,
+  haInstalledId: haInstalledId,
   verNewer: verNewer,
   readReleases: readReleases,
   releaseSummary: releaseSummary,

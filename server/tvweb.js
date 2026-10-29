@@ -1280,8 +1280,8 @@ function setupHomeAssistant() {
     if (!mqttClient.connected) return;
     var upd = updater.UPDATE;
     var state = {
-      // Bare: Home Assistant compares it with latest_version.
-      installed_version: TVWEB_VERSION,
+      // Bare on the official channel: Home Assistant compares it with latest_version.
+      installed_version: updater.haInstalledId(),
       title: 'Server',
       in_progress: !!upd.busy
     };

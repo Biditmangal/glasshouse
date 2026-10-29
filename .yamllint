@@ -1,0 +1,6 @@
+# The workflows carry pinned action SHAs and shell one-liners that cannot be
+# wrapped at yamllint's default 80 columns, and the existing ones already pass it.
+extends: relaxed
+rules:
+  line-length:
+    max: 140

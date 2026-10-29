@@ -11,6 +11,7 @@ on:
 
 jobs:
   checks:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     name: Lint and types
     steps:
@@ -63,6 +64,7 @@ jobs:
 
   # Its own job, so it builds alongside the rest.
   package:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     name: Package build
     steps:
@@ -83,6 +85,7 @@ jobs:
   # (49LF632V), 0.12 on webOS 4 (B8), 8.12 on webOS 6 (50UP81006LR) and 16
   # on webOS 9 (C2), and on 20 and 24. In parallel, each its own job.
   tv-node:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

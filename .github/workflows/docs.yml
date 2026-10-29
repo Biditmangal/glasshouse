@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     name: Site build
     steps:

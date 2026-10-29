@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   package:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

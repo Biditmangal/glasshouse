@@ -1151,6 +1151,12 @@ function doControl(action, value, cb) {
         cb(typeof updateSummaryFn === 'function' ? getUpdateSummary() : r);
       });
 
+    case 'updateChannel':
+      return updater.setChannel(String(value), function (r) {
+        if (r && !r.ok) return cb(r);
+        cb(typeof updateSummaryFn === 'function' ? getUpdateSummary() : r);
+      });
+
     case 'updateRollback':
       return updater.rollbackUpdate(function (r) {
         if (r && r.ok) setTimeout(function () { doRestartSelf(); }, 600);

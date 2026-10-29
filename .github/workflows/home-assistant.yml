@@ -36,6 +36,7 @@ permissions:
 
 jobs:
   discovery:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     name: Discovery validation
     steps:

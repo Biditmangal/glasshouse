@@ -92,6 +92,7 @@ nav:
 
 # Kept until the Homebrew Channel listing is live (webosbrew/apps-repo#261).
 not_in_nav: |
+  /personal-fork.md
   /install-homebrew-channel.md
   /dashboard/tv-app.md
 

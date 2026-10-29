@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   tabs:
+    if: github.repository == 'rorygallagher2024/glasshouse'
     runs-on: ubuntu-latest
     name: Browser smoke test
     steps:

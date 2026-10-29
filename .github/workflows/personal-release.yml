@@ -1,0 +1,295 @@
+# Builds the personal fork's release from the newest official release.
+#
+# Lives on the personal branch only, which must be the repository's default
+# branch for the schedule to run. docs/personal-fork.md has the whole design:
+# what each job may do, how a run is idempotent, and what to do when one stops.
+#
+# - prepare: no write access. Merges the official release into a scratch copy
+#   of the personal branch (never resolving a conflict), runs the static checks
+#   on it, builds the server bundle and verifies it. Pushes nothing.
+# - mirror: fast-forwards main to the official main. Never forces.
+# - publish: the only job with write access, and only after prepare and mirror.
+#   It runs scripts from the personal branch, not from the candidate, verifies
+#   the artifact again, and publishes last.
+# - notify: opens or updates one issue when any job above fails.
+#
+# Nothing here installs anything on a TV. A TV takes a personal release only
+# when someone selects the personal channel and presses Install.
+name: Personal release
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish what this run builds (the first release, or a patch-only rebuild)'
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: personal-release
+  cancel-in-progress: false
+
+env:
+  FORK: Biditmangal/glasshouse
+  TOOL: scripts/personal/personal_release.py
+
+jobs:
+  mirror:
+    if: github.repository == 'Biditmangal/glasshouse' && github.ref == 'refs/heads/personal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      # A plain push: it is refused unless main only moves forward. If the
+      # official release changed a workflow file, GitHub also refuses this
+      # token the push; the fork's "Sync fork" button then does it.
+      - name: main follows the official main
+        run: |
+          git fetch --no-tags https://github.com/rorygallagher2024/glasshouse.git '+refs/heads/main:refs/personal/upstream-main'
+          git push origin refs/personal/upstream-main:refs/heads/main || {
+            echo "::error::main could not be fast-forwarded: a workflow file changed upstream, or main has diverged."
+            echo "::error::Use Sync fork on the fork's page as the owner, then re-run. No token is added to this workflow for it."
+            exit 1
+          }
+
+  prepare:
+    if: github.repository == 'Biditmangal/glasshouse' && github.ref == 'refs/heads/personal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      action: ${{ steps.plan.outputs.action }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: newest official release
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(python3 "$TOOL" resolve)
+          [[ "$tag" =~ ^v[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$ ]] || { echo "::error::no usable official release tag"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: plan, and merge the release into a candidate
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          PUBLISH_REQUESTED: ${{ inputs.publish }}
+          UPSTREAM_TAG: ${{ steps.resolve.outputs.tag }}
+        run: |
+          python3 "$TOOL" plan --repo . --work "$RUNNER_TEMP/work" --upstream-tag "$UPSTREAM_TAG" \
+            --event "$EVENT" --publish-requested "${PUBLISH_REQUESTED:-false}"
+
+      # The checks that read files and run nothing of the TV's: no fixture
+      # tests and no fake servers. They run on the candidate, which holds
+      # code from the official release, so this job has no write access.
+      - name: static checks on the candidate
+        if: steps.plan.outputs.action == 'build'
+        run: |
+          dir="$RUNNER_TEMP/work/candidate"; [ -d "$dir" ] || dir="$GITHUB_WORKSPACE"
+          cd "$dir" || exit 1
+          for f in server/tvweb.js server/lib/*.js; do node --check "$f"; done
+          python3 scripts/check-es5.py >/dev/null
+          python3 scripts/check-module-calls.py
+          python3 scripts/check-ui-ids.py
+          python3 scripts/check-strings.py >/dev/null
+          python3 scripts/check-screensavers.py
+          python3 scripts/check-drift.py
+          python3 scripts/check-entities.py --stats test/fixtures/stats-b8-webos4.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx tsc
+
+      - name: build the bundle
+        if: steps.plan.outputs.action == 'build'
+        run: python3 "$TOOL" build --repo . --work "$RUNNER_TEMP/work" --out "$RUNNER_TEMP/out"
+
+      - name: verify the bundle
+        if: steps.plan.outputs.action == 'build'
+        run: python3 "$TOOL" verify --repo . --dir "$RUNNER_TEMP/out"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.plan.outputs.action == 'build'
+        with:
+          name: personal-release
+          path: ${{ runner.temp }}/out
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare, mirror]
+    if: needs.prepare.outputs.action == 'build' && needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: personal-release
+          path: ${{ runner.temp }}/art
+
+      # Everything the artifact says is checked again from the personal
+      # branch's own copy of the tool: hashes, the commits' shape, the files
+      # against the commit, and the official release looked up afresh.
+      - name: verify the artifact
+        run: python3 "$TOOL" verify --repo . --dir "$RUNNER_TEMP/art"
+
+      - name: read the release identity
+        id: rel
+        run: |
+          release="$RUNNER_TEMP/art/release.json"
+          tag=$(jq -r .release_tag "$release")
+          stamp=$(jq -r .stamp "$release")
+          cand=$(jq -r .candidate "$release")
+          tip=$(jq -r .personal_tip "$release")
+          [[ "$tag" =~ ^v[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}-personal\.[0-9]{1,6}$ ]] || { echo "bad tag"; exit 1; }
+          for sha in "$stamp" "$cand" "$tip"; do [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "bad sha"; exit 1; }; done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "stamp=$stamp" >> "$GITHUB_OUTPUT"
+          echo "cand=$cand" >> "$GITHUB_OUTPUT"
+          echo "tip=$tip" >> "$GITHUB_OUTPUT"
+
+      # Before any ref or draft exists: the fork's personal branch is where
+      # the run planned it (the checkout is always the commit that triggered
+      # the run, which says nothing of the branch now), and nothing is named
+      # for this release yet - no branch, no tag, no release, a draft included.
+      - name: the fork is as planned and the release name is unused
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
+          TIP: ${{ steps.rel.outputs.tip }}
+        run: |
+          python3 "$TOOL" preflight --repo . --remote origin --tag "$TAG" --tip "$TIP"
+          names=$(gh api "repos/$FORK/releases?per_page=100" --paginate --jq '.[].tag_name')
+          if grep -Fxq "$TAG" <<< "$names"; then
+            echo "a release named $TAG already exists"; exit 1
+          fi
+
+      - name: push the build branch
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
+          STAMP: ${{ steps.rel.outputs.stamp }}
+        run: git push origin "$STAMP:refs/heads/build/$TAG"
+
+      - name: draft the release
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
+          STAMP: ${{ steps.rel.outputs.stamp }}
+        run: |
+          python3 - "$RUNNER_TEMP/art/release.json" > "$RUNNER_TEMP/notes.md" <<'PY'
+          import json, os, sys
+          r = json.load(open(sys.argv[1]))
+          env = os.environ
+          run_url = '%s/%s/actions/runs/%s' % (env['GITHUB_SERVER_URL'], env['GITHUB_REPOSITORY'], env['GITHUB_RUN_ID'])
+          print('A personal build of Glasshouse %s: the official release %s plus this fork\'s patches. '
+                'A TV takes it only after the personal channel is selected and Install is pressed.' % (r['base'], r['upstream_tag']))
+          print()
+          print('## Technical details')
+          print()
+          print('- Official release: `%s` (`%s`)' % (r['upstream_tag'], r['upstream_sha']))
+          print('- Merged candidate: `%s`; stamped build: `%s`' % (r['candidate'], r['stamp']))
+          print('- Inputs hash: `%s`' % r['inputs_hash'])
+          print('- Built by [this run](%s). The run merged the release, ran the static checks '
+                '(syntax, ES5, module calls, UI ids, strings, screen savers, drift, '
+                'entities against a recorded fixture, tsc), '
+                'built the bundle and checked it against its manifest and the commit.' % run_url)
+          print('- Not run: the fixture test suite, the dashboard smoke test and any install on a TV.')
+          PY
+          gh release create "$TAG" --repo "$FORK" --draft --latest=false --target "$STAMP" \
+            --title "Glasshouse $TAG" --notes-file "$RUNNER_TEMP/notes.md" \
+            "$RUNNER_TEMP"/art/glasshouse-personal-*.tar.gz \
+            "$RUNNER_TEMP/art/glasshouse-personal.manifest.json" "$RUNNER_TEMP/art/SHA256SUMS"
+
+      # What GitHub holds is downloaded again and compared with what was
+      # built, before anything is published.
+      - name: check the draft's assets
+        id: draft
+        env:
+          TAG: ${{ steps.rel.outputs.tag }}
+        run: |
+          id=$(gh api "repos/$FORK/releases?per_page=100" --paginate \
+                 --jq ".[] | select(.tag_name == \"$TAG\" and .draft == true) | .id")
+          echo "$id" | grep -Eq '^[0-9]+$' || { echo "draft not found"; exit 1; }
+          mkdir "$RUNNER_TEMP/redl"
+          gh api "repos/$FORK/releases/$id" --jq '.assets[] | "\(.id) \(.name)"' | while read -r aid name; do
+            echo "$name" | grep -Eq '^[A-Za-z0-9._+-]+$' || { echo "bad asset name"; exit 1; }
+            gh api "repos/$FORK/releases/assets/$aid" -H 'Accept: application/octet-stream' > "$RUNNER_TEMP/redl/$name"
+          done
+          [ "$(ls "$RUNNER_TEMP/redl" | wc -l)" -eq 3 ] || { echo "the draft does not hold the three assets"; exit 1; }
+          for f in "$RUNNER_TEMP"/redl/*; do cmp "$f" "$RUNNER_TEMP/art/$(basename "$f")"; done
+          python3 "$TOOL" verify-assets --dir "$RUNNER_TEMP/redl"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      # Plain pushes: refused unless the branch only moves forward from where
+      # this run planned it, which also covers two runs at once.
+      - name: the personal branch advances to the merge
+        env:
+          CAND: ${{ steps.rel.outputs.cand }}
+          TIP: ${{ steps.rel.outputs.tip }}
+        run: |
+          if [ "$CAND" != "$TIP" ]; then git push origin "$CAND:refs/heads/personal"; fi
+
+      - name: publish, last
+        env:
+          RELEASE_ID: ${{ steps.draft.outputs.id }}
+          TAG: ${{ steps.rel.outputs.tag }}
+          STAMP: ${{ steps.rel.outputs.stamp }}
+        run: |
+          gh api -X PATCH "repos/$FORK/releases/$RELEASE_ID" -F draft=false -f make_latest=true >/dev/null
+          [ "$(git ls-remote origin "refs/tags/$TAG" | cut -f1)" = "$STAMP" ] || { echo "the tag does not name the stamped build"; exit 1; }
+
+  notify:
+    needs: [mirror, prepare, publish]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      MIRROR_RESULT: ${{ needs.mirror.result }}
+      PREPARE_RESULT: ${{ needs.prepare.result }}
+      PUBLISH_RESULT: ${{ needs.publish.result }}
+    steps:
+      # Issues must be enabled on the fork (they are off by default in a fork).
+      - name: one issue for the failures
+        run: |
+          title="Personal release automation failed"
+          number=$(gh issue list --repo "$FORK" --state open --search "\"$title\" in:title" --json number,title \
+                     --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          body="A run failed: see $RUN_URL. Results: mirror $MIRROR_RESULT, prepare $PREPARE_RESULT, publish $PUBLISH_RESULT."
+          if [ "$MIRROR_RESULT" = failure ]; then
+            body="$body The main mirror was refused (a changed workflow file upstream, or a diverged main)."
+            body="$body Use Sync fork on the fork's page as the owner, then re-run. Publishing waits for it."
+          fi
+          if [ "$PREPARE_RESULT" = failure ]; then
+            body="$body Planning or building stopped before any publication step: the run shows a merge conflict,"
+            body="$body an interrupted earlier publication, or a failed check."
+          fi
+          if [ "$PUBLISH_RESULT" = failure ]; then
+            body="$body Publication failed part way. A release may be a draft or already published: check the fork's"
+            body="$body Releases and build/ branches before running again, and see docs/personal-fork.md."
+          fi
+          if [ -n "$number" ]; then gh issue comment "$number" --repo "$FORK" --body "$body"
+          else gh issue create --repo "$FORK" --title "$title" --body "$body"; fi

@@ -167,6 +167,17 @@ show only the summary, so it leaves out changes to the docs and the code
 that people using it would not notice. Releases before 0.91 have no summary,
 and show none.
 
+## The personal fork
+
+`scripts/personal/check-release-flow.py` runs the personal release tooling on
+real git repositories made in a temporary directory (a merge of a newer
+official release with `.github/` kept, the build, an interrupted publication,
+the no-op once published, a patch, a conflict), and `test/test-personal.js` opens
+the real bundle with the system `tar` and runs the updater's install, rollback
+and failure handling on real directories. Neither uses the network or a TV.
+[The personal fork](../personal-fork.md) describes the workflow they cover,
+`.github/workflows/personal-release.yml`, which only runs in that fork.
+
 ## Running them locally
 
 From the repository root:
