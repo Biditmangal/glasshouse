@@ -145,6 +145,23 @@ var liveState = null;
 var historyModule = null;
 var stateDir = '/var/lib/tvweb';
 var webosVersion = null;
+/*
+ * LG's Flutter Home (webOS 10 and later) kept from coming back while Glasshouse
+ * Home has its place. On a G3 (webOS 11.2.0, #1042) the preload manager started
+ * a new flutter-client for com.webos.app.home a minute or two after the
+ * takeover stopped LG's, with sam already reading the web app: Home presses
+ * then began launches that never drew. While the place is held, the preload
+ * manager is told not to keep LG's Home loaded (its setPreloadPolicy, not
+ * configd, so a TV restarted without Glasshouse Home has LG's as it was), and
+ * an LG Home that starts anyway is stopped. Both are undone with the place.
+ */
+var LG_HOME_WATCH_MS = 10000;
+// The policy is told again once a minute: the preload manager loses it when it restarts.
+var LG_PRELOAD_EVERY = 6;
+var lgHomeWatchMs = LG_HOME_WATCH_MS;
+var lgHomeWatch = null;
+var lgHomeTicks = 0;
+var lgHomeHeld = false;
 var installFn = null;
 var procDir = '/proc';
 var execFn = execFile;
@@ -983,6 +1000,7 @@ function switchTo(on, cb) {
     var batch = switchWaiting.splice(0, switchWaiting.length);
     (want ? takeover.take : takeover.release)(function (r) {
       function finish() {
+        if (r.ok) holdLgHome(want);
         if (r.ok) {
           console.log('home: ' + (want ? 'Glasshouse Home is in LG\'s Home\'s place' : 'LG\'s Home is in its place'));
           if (want && viewInFront() && powerActive) watchBeat(FIRST_BEAT_GRACE_MS);
@@ -998,6 +1016,43 @@ function switchTo(on, cb) {
       });
     });
   })();
+}
+
+// Whether LG's Home is the Flutter one, which the preload manager starts again.
+function flutterHome() {
+  return parseInt(String(webosVersion || ''), 10) >= 10;
+}
+
+function preloadLgHome(enabled) {
+  luna('com.webos.service.preloadmanager/setPreloadPolicy', { application: { id: LG_HOME, isEnabled: enabled } }, function (r) {
+    if (!r || r.returnValue === false) {
+      console.error('home: the preload manager did not take LG\'s Home ' + (enabled ? 'back' : 'off') +
+                    (r && r.errorText ? ': ' + r.errorText : ''));
+    }
+  });
+}
+
+// LG's Home kept from coming back while Glasshouse Home has its place, or let back.
+function holdLgHome(on) {
+  if (!flutterHome()) return;
+  if (on === lgHomeHeld) {
+    if (on) preloadLgHome(false);
+    return;
+  }
+  lgHomeHeld = on;
+  if (lgHomeWatch) clearInterval(lgHomeWatch);
+  lgHomeWatch = null;
+  if (!on) return preloadLgHome(true);
+  preloadLgHome(false);
+  lgHomeTicks = 0;
+  lgHomeWatch = setInterval(watchLgHome, lgHomeWatchMs);
+}
+
+function watchLgHome() {
+  // Not while a switch runs: giving LG's Home its place back opens it.
+  if (switchBusy || !switchWant || !takeover.mounted()) return;
+  if (takeover.stopLgHome()) console.log('home: LG\'s Home was started again behind Glasshouse Home; stopped it');
+  if (++lgHomeTicks % LG_PRELOAD_EVERY === 0) preloadLgHome(false);
 }
 
 // ---------------------------------------------------------------- settings
@@ -1680,6 +1735,8 @@ function powerChanged(active) {
   if (was && !active) sleeps++;
   if (!active) cancelWake();
   if (was !== active && readConfig().enabled) syncLgAutoLaunch();
+  // The preload manager may have started over with the TV.
+  if (!was && active && lgHomeHeld) preloadLgHome(false);
 }
 
 function status(cb) {
@@ -1747,6 +1804,7 @@ function init(opts) {
     blockFirst: function () { return /^1[01]\./.test(String(webosVersion || '')); }
   });
   webosVersion = opts.webosVersion || null;
+  lgHomeWatchMs = opts.lgHomeWatchMs || LG_HOME_WATCH_MS;
   installFn = opts.installApp || null;
   procDir = opts.procDir || '/proc';
   slowOpenMs = typeof opts.slowOpenMs === 'number' ? opts.slowOpenMs : FIRST_BEAT_GRACE_MS;
@@ -1899,6 +1957,9 @@ function watchStart(when, beatsBefore, signSince) {
 function pageAlive() { pageSeenAt = nowMs(); }
 
 function stop() {
+  if (lgHomeWatch) clearInterval(lgHomeWatch);
+  lgHomeWatch = null;
+  lgHomeHeld = false;
   cancelWake();
   stopBeatWatch();
   stopOpenWatch();

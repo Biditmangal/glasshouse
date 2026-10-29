@@ -978,6 +978,20 @@ codes 428 (the microphone) and 1117 (Google Assistant), LG's xkb codes 436 and
 webOS 4.10.2 reports 428 for the microphone too. With either set in Remote keys,
 the compositor's filter keeps the press from LG and the device still delivers it.
 
+## LG's Home started again behind Glasshouse Home (G3, webOS 11.2.0)
+
+Reported in #1042 by BlueSink from an OLED77G3PUA, firmware 43.21.71. A minute
+or two after the takeover stopped LG's Home, with sam already reporting
+`com.webos.app.home` as `web` in the `home` category, new `flutter-client -i
+com.webos.app.home` processes appeared, launched by
+`com.webos.service.preloadmanager`. Home presses then logged five or six `SAM
+NL_APP_LAUNCH_BEGIN` for `com.webos.app.home` (caller
+`com.webos.starfish.keyfilters`) with no `LSM NL_VSC` after them, while launches
+by luna-send still drew the view. Stopping LG's Home every few seconds and
+`preloadmanager/setPreloadPolicy` with `{"application":{"id":"com.webos.app.home",
+"isEnabled":false}}`, sent again about once a minute, kept Home opening through
+reboots.
+
 ## Native key filters (C5, webOS 11.2.0)
 
 - **No JavaScript filters.** `surface-manager` runs on Weston
