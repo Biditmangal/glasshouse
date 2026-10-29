@@ -1938,7 +1938,12 @@ Read only, from `luna-send`:
   `getDeviceStatus`, `getConnectedDevice`, `getPairedDevices`,
   `removePairedDevice`, `startDiscovery`, `cancelDiscovery` and
   `notifyUserSelection`, among others.
-- The `btaudiosrc` binary has handlers for `connect` and `disconnect` and a
-  request schema with a required string `address`. Which handler uses it was
-  not read from the binary, and neither method has been called here, so what a
-  `connect` or `disconnect` with `{address}` does on this TV is not known.
+- Both `disconnect` and `connect` with `{address}` were tried through the
+  dashboard's Bluetooth endpoint. Each answered `returnValue: true` before
+  `getPairedDevices` reported the new state. Refreshing confirmed the soundbar
+  disconnected and then reconnected; `getConnectedDevice` named it again.
+  The other paired device remained disconnected. This verifies the request
+  shape on this firmware, not on other webOS versions.
+- After reconnecting, `audio/getSoundOut` again reported Bluetooth output and
+  the same volume, but mute was off rather than its original on state. Mute
+  was restored after the test. Audible playback was not checked.
