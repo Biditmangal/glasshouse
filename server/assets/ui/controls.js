@@ -227,14 +227,24 @@ function renderKeyboardRoute(method) {
   if (!via) return;
   via.textContent =
     method === 'ime' ? t('ctl.keyboard.via.ime', 'Typed through LG\u2019s input method.')
-    : method === 'stremiobrew' ? t('ctl.keyboard.via.stremiobrew', 'Typed into StremioBrew\u2019s search.')
     : method === 'page' ? t('ctl.keyboard.via.page', 'Typed into the app\u2019s page.')
-    : method === 'keys' ? t('ctl.keyboard.via.keys', 'Sent as key presses, which carry no capitals.')
+    : method === 'keys' ? t('ctl.keyboard.via.keys', 'Typing as key presses; lowercase only.')
     : '';
 }
 
-// Sends what changed in the box, and the whole box for apps that take it all
-// at once.
+// Backspace in a box that is already empty has nothing of the box's to delete.
+// Left alone, nothing is sent, and the page's own Backspace shortcut (the TV's
+// Back key) stays out of it: YouTube leaves its search on a Back. Deleting the
+// last character is unaffected: the box is not empty yet when the key goes down.
+// The TV's own field cannot be read, so this is judged by the box alone.
+function kbIgnoreBackspaceInEmptyBox(event) {
+  if (event.key !== 'Backspace' || event.isComposing || event.target.value !== '') return;
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+// Sends what changed in the box. full, the whole box, asks the server to pick
+// the route that suits the app in front.
 async function kbSyncLive() {
   const el = document.getElementById('kb-text');
   if (!el) return;

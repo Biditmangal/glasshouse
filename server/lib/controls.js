@@ -298,12 +298,10 @@ function foregroundAppId(cb) {
 }
 
 /*
- * Where the keyboard box types now: { method: 'ime' | 'stremiobrew' | 'page' |
- * 'keys', ... }.
+ * Where the keyboard box types now: { method: 'ime' | 'page' | 'keys', ... }.
  *  - ime: LG's input method, when it has a field in focus (the remote keyboard
  *    answers focus true, or on webOS 6+ LG's keyboard window is up), and when
  *    the foreground app cannot be told.
- *  - stremiobrew: that app's own phone-typing address.
  *  - page: the foreground web app's page, through the web app debugger.
  *  - keys: key presses on the network input, for native apps.
  * registerRemoteKeyboard is asked as a one-answer call: its subscription ends
@@ -321,7 +319,6 @@ function chooseTypingRoute(cb) {
     if (r && r.currentWidget && r.currentWidget.focus === true) return choose({ method: 'ime' });
     foregroundAppId(function (appId) {
       if (!appId) return choose({ method: 'ime' });
-      if (appId === typing.STREMIOBREW_APP) return choose({ method: 'stremiobrew' });
       typing.listPages(function (pages) {
         var page = typing.pickPage(pages, appId);
         if (page) return choose({ method: 'page', pageUrl: page.webSocketDebuggerUrl });
@@ -338,8 +335,7 @@ function chooseTypingRoute(cb) {
 
 /*
  * The dashboard's keyboard box, typed where the TV can take it. text is what
- * to add, replace how many characters to delete first, full everything now in
- * the box (for an app that takes the whole text), enter whether to submit
+ * to add, replace how many characters to delete first, enter whether to submit
  * afterwards. The answer names the route, and for a route that goes one key at
  * a time says how many went through, as a key press cannot be read back.
  */
@@ -357,7 +353,6 @@ function typeFromBox(request, cb) {
       if (route.method === 'ime') {
         return lunaUrgent('com.webos.service.ime/sendEnterKey', {}, function (e) { answer(imeResult(e)); });
       }
-      if (route.method === 'stremiobrew') return answer(r);
       if (route.method === 'page') {
         return typing.typeIntoPage(route.pageUrl, '', 0, true, answer);
       }
@@ -366,7 +361,6 @@ function typeFromBox(request, cb) {
     var hasText = !!request.text || request.replace > 0;
     if (!hasText) return pressEnter({ ok: true });
     if (route.method === 'ime') return typeThroughIme(request.text, request.replace, pressEnter);
-    if (route.method === 'stremiobrew') return typing.typeIntoStremioBrew(request.full, pressEnter);
     if (route.method === 'page') {
       return typing.typeIntoPage(route.pageUrl, request.text, request.replace, false, pressEnter);
     }
@@ -473,23 +467,26 @@ function doControl(action, value, cb) {
        * backspace sent as a key on the remote's device closed LG's keyboard
        * there instead (a C2, webOS 9.2.2). With full as well, the whole box,
        * the dashboard is asking for the route that suits the app in front: see
-       * chooseTypingRoute. enter submits what was typed.
+       * chooseTypingRoute. Without it the text goes through LG's input method
+       * only, as Home Assistant and older dashboards send it. The routes type
+       * what changed, so full itself is not read. enter submits what was typed.
        */
-      var typed, delCount, fullText = null, pressesEnter = false;
+      var typed, delCount, fullLength = 0, routeByApp = false, pressesEnter = false;
       if (value && typeof value === 'object') {
         typed = String(value.text == null ? '' : value.text);
         delCount = Math.max(0, toInt(value.replace, 0));
-        if (typeof value.full === 'string') fullText = value.full;
+        routeByApp = typeof value.full === 'string';
+        if (routeByApp) fullLength = value.full.length;
         pressesEnter = value.enter === true;
       } else {
         typed = String(value == null ? '' : value);
         delCount = 0;
       }
-      if (typed.length > SEND_TEXT_MAX || delCount > SEND_TEXT_MAX || (fullText !== null && fullText.length > SEND_TEXT_MAX)) {
+      if (typed.length > SEND_TEXT_MAX || delCount > SEND_TEXT_MAX || fullLength > SEND_TEXT_MAX) {
         return cb({ ok: false, error: 'at most ' + SEND_TEXT_MAX + ' characters at a time' });
       }
-      if (fullText === null) return typeThroughIme(typed, delCount, cb);
-      return typeFromBox({ text: typed, replace: delCount, full: fullText, enter: pressesEnter }, cb);
+      if (!routeByApp) return typeThroughIme(typed, delCount, cb);
+      return typeFromBox({ text: typed, replace: delCount, enter: pressesEnter }, cb);
 
     case 'launch_app':
     case 'launchApp':

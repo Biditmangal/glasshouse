@@ -2,9 +2,9 @@
 /*
  * Where the dashboard's keyboard box types when LG's input method has no field
  * to type into. controls.js decides the route; this file holds what each route
- * needs: key presses on the TV's network input, a web app's page through the
- * web app debugger, and StremioBrew's own phone-typing address. docs/IMPLEMENTATION.md
- * has the routing and docs/development/TV-RESEARCH.md what was measured.
+ * needs: key presses on the TV's network input, and a web app's page through
+ * the web app debugger. docs/IMPLEMENTATION.md has the routing and
+ * docs/development/TV-RESEARCH.md what was measured.
  */
 var http = require('http');
 var crypto = require('crypto');
@@ -54,21 +54,9 @@ function keyCodesFor(text, replace) {
   return { codes: codes };
 }
 
-// ------------------------------------------------------------- StremioBrew
+// ------------------------------------------------------------- local HTTP
 
-/*
- * StremioBrew's search is a drawn control with no text field, so it ignores key
- * events. Its own service takes the text for a phone: /phoneurl answers with an
- * address carrying a token, and a GET of /q on it replaces the search text (the
- * app polls it about every 2 s while Search is shown).
- */
-var STREMIOBREW_APP = 'tv.stremiobrew.app';
-var STREMIOBREW_TEXT_MAX = 80;
-var STREMIOBREW_PHONEURL_PORT = 8080;
-var STREMIOBREW_TYPING_PORT = 8099;
 var LOCAL_HTTP_TIMEOUT_MS = 3000;
-
-var stremioBrewToken = '';
 
 // GET on this TV; cb(error message or null, status, body).
 function localGet(port, path, cb) {
@@ -91,52 +79,6 @@ function localGet(port, path, cb) {
     finish('timed out');
   }, LOCAL_HTTP_TIMEOUT_MS);
   req.on('error', function (err) { finish(err.message); });
-}
-
-function readStremioBrewToken(cb) {
-  localGet(STREMIOBREW_PHONEURL_PORT, '/phoneurl', function (error, status, body) {
-    var url = null;
-    if (!error && status === 200) {
-      try { url = JSON.parse(body).url; } catch (e) { url = null; }
-    }
-    var found = /\/t\/([A-Za-z0-9_\-]+)/.exec(String(url || ''));
-    if (!found) {
-      return cb(msg('srv.typing.stremioBrewNoToken', 'StremioBrew did not give its phone-typing address; is its Search open?'));
-    }
-    stremioBrewToken = found[1];
-    cb(null);
-  });
-}
-
-function putStremioBrewText(text, cb) {
-  localGet(STREMIOBREW_TYPING_PORT, '/t/' + stremioBrewToken + '/q?text=' + encodeURIComponent(text), function (error, status) {
-    if (!error && status >= 200 && status < 300) return cb(null);
-    cb(error || ('StremioBrew answered ' + status));
-  });
-}
-
-// Replaces the whole search text; cb({ ok, error }). The token is read again
-// once if the first attempt fails, as it may be from an earlier run of the app.
-function typeIntoStremioBrew(fullText, cb) {
-  if (fullText.length > STREMIOBREW_TEXT_MAX) {
-    return cb({ ok: false, error: msg('srv.typing.stremioBrewTooLong', 'StremioBrew\u2019s search takes at most {max} characters', { max: STREMIOBREW_TEXT_MAX }) });
-  }
-  var attempt = function (fresh) {
-    var put = function () {
-      putStremioBrewText(fullText, function (error) {
-        if (!error) return cb({ ok: true });
-        if (fresh) return cb({ ok: false, error: msg('srv.typing.stremioBrewFailed', 'StremioBrew did not take the text: {error}', { error: error }) });
-        stremioBrewToken = '';
-        attempt(true);
-      });
-    };
-    if (stremioBrewToken) return put();
-    readStremioBrewToken(function (error) {
-      if (error) return cb({ ok: false, error: error });
-      put();
-    });
-  };
-  attempt(false);
 }
 
 // ----------------------------------------------------------- web app pages
@@ -388,9 +330,7 @@ function typeIntoPage(webSocketUrl, text, replace, enter, cb) {
 
 module.exports = {
   SEND_KEYS_MAX: SEND_KEYS_MAX,
-  STREMIOBREW_APP: STREMIOBREW_APP,
   keyCodesFor: keyCodesFor,
-  typeIntoStremioBrew: typeIntoStremioBrew,
   listPages: listPages,
   pickPage: pickPage,
   typeIntoPage: typeIntoPage,

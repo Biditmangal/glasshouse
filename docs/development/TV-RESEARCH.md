@@ -1010,16 +1010,6 @@ read on this TV.
   acts as Back. Chromium is 53 (WebKit 537.36), protocol
   1.1. `devtools.js` only drops port 9998 for traffic that is not on loopback,
   so this is not affected by closing the debugger to the network.
-- **StremioBrew 2.0.0 (`tv.stremiobrew.app`).** The page URL is
-  `file:///media/developer/apps/usr/palm/applications/tv.stremiobrew.app/index.html`.
-  DevTools key events reach the page, but the app ignores letters: its search is
-  a custom `div` with no `<input>`. It has an API for typing from a phone:
-  `GET http://127.0.0.1:8080/phoneurl` answers `{"url":
-  "http://<lan-ip>:8099/t/<token>", ...}`, and
-  `GET http://127.0.0.1:8099/t/<token>/q?text=<urlencoded>` (the LAN address
-  works too) answers 204 and replaces the whole search text, 80 characters at
-  most. The app polls it about every 2 s while Search is shown. "lupin" typed
-  this way appeared in the search and loaded results.
 
 Glasshouse picks between these by the app in front; docs/IMPLEMENTATION.md has
 the order.
