@@ -66,7 +66,7 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 
     Clock, Starfield, Fireworks, Bokeh, Harmonograph and Panel Vitals in place of LG's.
 
--   **[Advanced Controls](advanced.md)**
+-   **[System](advanced.md)**
 
     ---
 

@@ -96,13 +96,13 @@ With the dashboard disabled, the server acts purely as an MQTT bridge with no we
 
 ### PicCap ambient lighting
 
-[PicCap](https://github.com/TBSniller/piccap) captures the TV's screen for a Hyperion server, which drives an ambient light behind the TV. Where PicCap is installed, the Advanced tab has a **PicCap capture** switch that starts and stops capture, and Home Assistant receives a **PicCap Capture** switch under Controls & Media. Nothing is asked of PicCap on a TV without it. Its Home Assistant entity can be switched off like any other, which also stops the server polling PicCap's state every 30 seconds.
+[PicCap](https://github.com/TBSniller/piccap) captures the TV's screen for a Hyperion server, which drives an ambient light behind the TV. Where PicCap is installed, the System tab has a **PicCap capture** switch that starts and stops capture, and Home Assistant receives a **PicCap Capture** switch under Controls & Media. Nothing is asked of PicCap on a TV without it. Its Home Assistant entity can be switched off like any other, which also stops the server polling PicCap's state every 30 seconds.
 
 The retained state topic `<topicPrefix>/state/piccap/power` carries `ON` or `OFF`, and the command topic `<topicPrefix>/command/piccap/power` accepts `ON` or `OFF` (commands require `allowControl`). Telemetry includes the boolean `piccap.power` while PicCap answers.
 
 ### Hue Sync
 
-Where the Hue Sync app is installed, the Advanced tab has a **Hue Sync streaming** switch and Home Assistant receives a **Hue Sync** switch under Controls & Media, which starts and stops its streaming to Philips Hue and Ambience lights. Nothing is asked of Hue Sync on a TV without it. Its Home Assistant entity can be switched off like any other, which also stops the server polling Hue Sync's state every 30 seconds.
+Where the Hue Sync app is installed, the System tab has a **Hue Sync streaming** switch and Home Assistant receives a **Hue Sync** switch under Controls & Media, which starts and stops its streaming to Philips Hue and Ambience lights. Nothing is asked of Hue Sync on a TV without it. Its Home Assistant entity can be switched off like any other, which also stops the server polling Hue Sync's state every 30 seconds.
 
 The retained state topic `<topicPrefix>/state/huesync/power` carries `ON` or `OFF`, and the command topic `<topicPrefix>/command/huesync/power` accepts `ON` or `OFF` (commands require `allowControl`). Telemetry includes the boolean `huesync.streaming` while Hue Sync answers. See [Hue Sync](huesync.md) for setup and automation examples.
 
@@ -374,7 +374,7 @@ When the TV is switched off, its entities stay available and show a switched-off
 
 A TV in standby is asleep and cannot receive commands, so it is switched back on over the network with Wake-on-LAN.
 
-1. Turn on **Wake-on-LAN** on the TV: in the web dashboard under **Control &rarr; Advanced**, on the TV dashboard under **System &rarr; Power**, or in LG's menu under **Settings &rarr; General &rarr; Mobile TV On**. Wake-on-LAN works over Ethernet and, on most models, Wi-Fi.
+1. Turn on **Wake-on-LAN** on the TV: in the web dashboard under **System &rarr; Power**, on the TV dashboard under **System &rarr; Power**, or in LG's menu under **Settings &rarr; General &rarr; Mobile TV On**. Wake-on-LAN works over Ethernet and, on most models, Wi-Fi.
 2. In Home Assistant, add the **Wake on LAN** integration (**Settings &rarr; Devices &amp; services &rarr; Add integration &rarr; Wake on LAN**) with the TV's MAC address. The address is listed under **Connections** on the TV's device page in Home Assistant, and as the **MAC Address** sensor.
 
 This creates a button that wakes the TV from standby. To make one switch that shows whether the TV is on and turns it on or off, add a template switch to `configuration.yaml`, with the TV's MAC address:
