@@ -1326,7 +1326,12 @@ function handleRequest(req, res) {
         });
       });
     }
-    return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
+    if (req.method !== 'POST') return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
+    if (!config.allowControl) return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    if (!hostAllowed(req)) return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.audio.hostRefused', 'Use the TV address to change the DTS override.') }));
+    return readJsonBody(req, res, function (body) {
+      audioModule.setOverride(body.enabled, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
+    });
   }
 
   if (pathname === '/api/screensaver') {

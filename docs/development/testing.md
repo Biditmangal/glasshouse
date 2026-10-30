@@ -12,19 +12,28 @@ declarations: receiver formats remain separate from TV capabilities, an eARC
 EDID flag does not promote ARC, stale driver values do not become live audio,
 and corrupt or missing evidence remains unknown. A named read of the sound output
 wins over a stale whole-category read, and a refused one leaves the category's
-values. The endpoint is read-only and starts no process in those fixtures.
-Synthetic C9 cases cover `dimension.input`, HAWK2's native EDID, invalid
+values. Synthetic C9 cases cover `dimension.input`, HAWK2's native EDID, invalid
 checksums/lengths/bytes, failed native reads without family fallback, and
 omission of unspecified, disconnected or unstable channel metadata. They check
 logical input parameters and that native-app playback never reads an arbitrary
 HDMI port. Channel metadata does not establish a codec, playback or eARC
-negotiation.
+negotiation. It also checks that wrong targets, unverified helpers, read-only
+mode and cross-origin requests cannot launch the privileged helper. On a
+mocked OLED83G54LW with the native package, it checks that HD payload is
+reported only with every readiness signal, that leftover changes ask for
+restoration, that a receiver or link not fit for the mode is refused before
+the controller runs, and that a failed or incomplete disable is not confirmed.
+Hardware qualification of a DTS override still requires a source-to-receiver
+trial.
 
 The dashboard check opens both Audio tabs: the sound settings come first and
-are gone from the TV app's System tab, and a failed read leaves no stale
-readings. Both tabs render C9 source channel metadata separately from incoming
-audio. The web tab removes stale controls after a failed read and restores
-them after a successful retry.
+are gone from the TV app's System tab, experimental forwarding asks for a
+second OK to enable and stops in one, and unsupported, read-only and
+failed-read states offer no override. Helper writes are intercepted in the
+browser; this does not qualify forwarding on hardware. Both tabs render C9
+source channel metadata separately from incoming audio. The web tab also
+rejects a late pre-change snapshot, removes stale controls after a failed read
+and restores them after a successful retry.
 
 `test-lgsettings.js` checks that picture writes refuse hidden settings and
 inactive choices, alongside locked rows and values outside the TV's range, and

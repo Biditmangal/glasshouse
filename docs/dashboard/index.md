@@ -58,7 +58,7 @@ On a wide screen the tabs are listed down the left. On a phone, or wherever Pref
 
     ---
 
-    Sound settings and the formats the TV and its receiver report.
+    Sound settings, the formats the TV and its receiver report, and experimental DTS forwarding.
 
 -   **[Screen savers](screen-savers.md)**
 

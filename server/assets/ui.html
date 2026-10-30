@@ -564,6 +564,13 @@
     </div>
     <p class="sub" id="audio-link-note"></p>
 
+    <div id="audio-forwarding" hidden>
+    <div class="pv-sec adv-sec" data-t="audio.overrideTitle">Experimental DTS forwarding</div>
+    <div class="prot-table">
+      <div class="prot-row"><div class="prot-main"><div class="prot-title" data-t="tv.audio.forwarding">DTS forwarding</div><div class="prot-desc" id="audio-override-desc"></div></div><div class="prot-status"><button type="button" class="pill idle" id="audio-override" onclick="audioOverride()" aria-pressed="false" aria-describedby="audio-override-desc" disabled><span data-t="audio.unavailable">Unavailable</span></button></div></div>
+    </div>
+    <p class="sub audio-helper"><a href="https://github.com/dakenf/lg-g5-dts" target="_blank" rel="noopener noreferrer" data-t="audio.helperLink">About the DTS forwarding helper</a></p>
+    </div>
 
     <details class="pv-d"><summary data-t="audio.playbackTitle">TV playback declarations</summary><p class="pv-sub" data-t="audio.playbackDesc">Formats listed by LG’s media configuration, with their declared channel limits. These describe playback resources, not what reaches an amp.</p><div class="audio-playback" id="audio-playback"></div></details>
   </div>

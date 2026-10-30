@@ -151,6 +151,15 @@ as negotiation evidence. `?with=settings` adds LG's sound and HDMI setting rows,
 each dashboard reads one endpoint. Reads run only while an Audio tab is open;
 there is no audio-capability background subscription.
 
+The optional DTS override wraps one of two separately installed, pinned
+packages: the lg-g5-dts HDMI helper, or the native-app forwarder on the
+OLED83G54LW. Glasshouse checks the exact model, firmware and kernel and the
+pinned runtime-file hashes before enabling. For lg-g5-dts it also checks the
+manifest and boot-hook hash; the native `control.py` checks its own manifest
+and boot image. Both retain their own kernel instruction guards.
+Disable calls the helper's complete restoration. The UI distinguishes the
+enabled preference, running supervisor and active kernel route. A failed or
+unknown state is not reported as successful forwarding.
 The audio output in the stats is named from the `soundOutput` of
 `com.webos.service.audio/master/getVolume`, which uses the sound settings'
 keys, or `tv_speaker_bt_surround` for `tv_speaker_bluetooth` when the

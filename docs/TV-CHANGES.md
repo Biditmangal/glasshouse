@@ -1,6 +1,6 @@
 # What the dashboard changes on the TV
 
-## Audio capabilities
+## Audio capabilities and DTS forwarding
 
 The Audio tabs read LG's capability, settings and ARC services, the current
 HDMI EDID and audio driver status, and the media-resource declaration file. LG's DTS decoder is inspected on demand, at most once every five minutes.
@@ -10,6 +10,41 @@ from the mapped HDMI receiver's status file. A snapshot performs no EDID or
 audio-setting write.
 Native controls use LG's ordinary settings service.
 
+The experimental override invokes `control.sh enable` or `disable` on an
+already-installed, pinned lg-g5-dts helper, only on its exact supported target.
+Enable requires matching runtime-file hashes, kernel and firmware plus a
+DTS/DTS-HD-capable eARC receiver. The helper owns its enabled marker, service, kernel
+hooks, capability override and audio restoration. Glasshouse installs no
+decoder, firmware or kernel module. Unknown targets are refused; a matching
+verified helper can still be disabled after a firmware mismatch.
+
+The separately installed native-app package adds a shared GStreamer DTS
+forwarder on OLED83G54LW.BEKYLJP firmware 33.31.68, with an exact boot-image
+hash and kernel code guards. By default it forwards 48 kHz DTS core, including
+the core from compatible DTS-HD tracks. An opt-in HD mode (`control.py mode
+hd`, which writes `hd-rate` in the package directory) forwards complete DTS-HD
+frames on an eight-channel 192 kHz eARC carrier. While an HD stream holds the
+route, the kernel module changes LG's bypass sample-rate converter format, the
+eARC output clock, the eARC format, channels and mute, and re-runs LG's eARC
+link set-up. Playback starts and recovers muted until that is in place. On
+release it restores the saved settings, or LG's current settings if another
+source has taken the output.
+Enabling sets the owned `TrueHD+dts` declaration, adds a volatile
+`umediaserver.service` plugin-path drop-in, bind-mounts a checked copy of
+`/etc/gst/gstcool.conf` that ranks the forwarder ahead of LG's DTS decoder
+proxy, and restarts ARC and media playback. The bind mount does not survive a
+reboot; the boot hook reapplies it while enabled.
+The package lives under `/var/lib/lg-dts-native`; its boot hook reapplies the
+registration while enabled. A kernel route exists only during DTS playback.
+A producer lease restores the previous route within 20 seconds of a stalled
+producer; normal stop and end-of-stream release it directly. Seeking retains
+the route. While enabled, a DTS stream in a TV app without the eARC set-up is
+refused rather than handed back to LG's decoder. Disabling removes the
+registration and the bind mount, releases the route and restores the owned
+declaration.
+The declaration also affects HDMI capability reporting; this package qualifies
+native playback only. The original HDMI helper retains its separate compatibility
+checks.
 Nothing on the read-only root filesystem is written. Everything below other
 than the server's own files happens only when the owner switches it on, and the
 riskier controls ask for confirmation in the dashboard first.
