@@ -217,7 +217,8 @@ async function kbSend(action, value) {
       body: JSON.stringify({ action, value })
     });
     const j = await r.json();
-    if (!j.ok) showErr(j.error || t('common.actionFailed', 'Action failed'));
+    // A web app the box cannot type into says so under the box, not on each key.
+    if (!j.ok && j.method !== 'none') showErr(j.error || t('common.actionFailed', 'Action failed'));
     return j;
   } catch (e) {
     showErr(e.message);
@@ -234,6 +235,7 @@ function renderKeyboardRoute(method) {
     method === 'ime' ? t('ctl.keyboard.via.ime', 'Typed through LG\u2019s input method.')
     : method === 'page' ? t('ctl.keyboard.via.page', 'Typed into the app\u2019s page.')
     : method === 'keys' ? t('ctl.keyboard.via.keys', 'Typing as key presses; lowercase only.')
+    : method === 'none' ? t('ctl.keyboard.via.none', 'This app does not take typing from here. Press OK on its search box to open LG\u2019s keyboard, and the box types into that.')
     : '';
 }
 
@@ -266,6 +268,8 @@ async function kbSyncLive() {
     if (r && r.ok) {
       kbSynced = sentAsOf;
       renderKeyboardRoute(r.method);
+    } else if (r && r.method === 'none') {
+      renderKeyboardRoute('none');
     } else if (r && r.sent !== undefined) {
       // A key press cannot be read back: after part of a change went through,
       // what the TV has is unknown, so the box starts again rather than

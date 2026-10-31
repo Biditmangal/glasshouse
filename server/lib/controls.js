@@ -336,6 +336,9 @@ function foregroundAppId(cb) {
  *    the foreground app cannot be told.
  *  - page: the foreground web app's page, through the web app debugger.
  *  - keys: key presses on the network input, for native apps.
+ *  - none: a web app whose page cannot be reached. Without Developer Mode the
+ *    web app debugger does not run, and YouTube on a C2 (webOS 9.2.2) took
+ *    none of the key presses, so they are not sent and the box says so.
  * registerRemoteKeyboard is asked as a one-answer call: its subscription ends
  * with the call, so nothing is left registered.
  */
@@ -354,11 +357,11 @@ function chooseTypingRoute(cb) {
       typing.listPages(function (pages) {
         var page = typing.pickPage(pages, appId);
         if (page) return choose({ method: 'page', pageUrl: page.webSocketDebuggerUrl });
-        if (pages.length !== 1) return choose({ method: 'keys' });
-        // The one page open is the app's only if the app is a web app.
         lunaUrgent('com.webos.applicationManager/getAppInfo', { id: appId }, function (info) {
           var isWebApp = !!(info && info.appInfo && info.appInfo.type === 'web');
-          choose(isWebApp ? { method: 'page', pageUrl: pages[0].webSocketDebuggerUrl } : { method: 'keys' });
+          if (!isWebApp) return choose({ method: 'keys' });
+          // The one page open is the app's only if the app is a web app.
+          choose(pages.length === 1 ? { method: 'page', pageUrl: pages[0].webSocketDebuggerUrl } : { method: 'none' });
         });
       });
     });
@@ -390,6 +393,9 @@ function typeFromBox(request, cb) {
       }
       pressKeyCodes([RCU_KEYS.ok], answer);
     };
+    if (route.method === 'none') {
+      return answer({ ok: false, error: msg('srv.typing.noRoute', 'This app does not take typing from here. Press OK on its search box to open LG\u2019s keyboard, and the box types into that.') });
+    }
     var hasText = !!request.text || request.replace > 0;
     if (!hasText) return pressEnter({ ok: true });
     if (route.method === 'ime') return typeThroughIme(request.text, request.replace, pressEnter);

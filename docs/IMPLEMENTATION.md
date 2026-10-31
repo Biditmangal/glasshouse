@@ -593,7 +593,9 @@ the dashboard's way of asking for a route; its content is not read. The choice i
    (3 s without one fails). Backspace is `rawKeyDown`/`keyUp` with key code 8,
    a character a `keyDown` with its text, Enter code 13. `devtools.js` closes
    the port to the network only, so loopback keeps working; with Developer Mode
-   off nothing listens and the box falls to the next route.
+   off nothing listens. A web app is then sent nothing: YouTube on a C2 (webOS
+   9.2.2) took none of the key presses below. The answer has `method: 'none'`,
+   and the dashboard shows its note rather than an error on each key.
 3. Key presses on `networkinput/test/sendKeyCode`, for native apps: lowercase
    letters, digits and unshifted symbols, 50 at a time, Enter as OK.
 
