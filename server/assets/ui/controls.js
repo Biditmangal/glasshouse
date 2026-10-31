@@ -235,7 +235,7 @@ function renderKeyboardRoute(method) {
     method === 'ime' ? t('ctl.keyboard.via.ime', 'Typed through LG\u2019s input method.')
     : method === 'page' ? t('ctl.keyboard.via.page', 'Typed into the app\u2019s page.')
     : method === 'keys' ? t('ctl.keyboard.via.keys', 'Typing as key presses; lowercase only.')
-    : method === 'none' ? t('ctl.keyboard.via.none', 'This app does not take typing from here. Press OK on its search box to open LG\u2019s keyboard, and the box types into that.')
+    : method === 'none' ? t('ctl.keyboard.via.none', 'This app does not take typing from here. Use the keyboard it shows on the TV, or, where it opens LG\u2019s, the box types into that.')
     : '';
 }
 
