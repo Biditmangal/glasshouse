@@ -151,6 +151,15 @@ as negotiation evidence. `?with=settings` adds LG's sound and HDMI setting rows,
 each dashboard reads one endpoint. Reads run only while an Audio tab is open;
 there is no audio-capability background subscription.
 
+The optional DTS override wraps one of two separately installed, pinned
+packages: the lg-g5-dts HDMI helper, or the native-app forwarder on the
+OLED83G54LW. Glasshouse checks the exact model, firmware and kernel and the
+pinned runtime-file hashes before enabling. For lg-g5-dts it also checks the
+manifest and boot-hook hash; the native `control.py` checks its own manifest
+and boot image. Both retain their own kernel instruction guards.
+Disable calls the helper's complete restoration. The UI distinguishes the
+enabled preference, running supervisor and active kernel route. A failed or
+unknown state is not reported as successful forwarding.
 The audio output in the stats is named from the `soundOutput` of
 `com.webos.service.audio/master/getVolume`, which uses the sound settings'
 keys, or `tv_speaker_bt_surround` for `tv_speaker_bluetooth` when the
@@ -1306,7 +1315,7 @@ feature off, or `tvwebctl restore-home` before uninstalling, deletes the webOS
 ## Glasshouse Home
 
 `lib/home.js` runs a home screen of Glasshouse's own in place of LG's, opt-in
-from the dashboard's Home tab (webOS 9; webOS 10 and 11 with `allowExperimentalHome`). The view is `assets/home.html`,
+from the dashboard's Home tab (webOS 5, 6, 7, 9 and 10; webOS 11 with `allowExperimentalHome`). The view is `assets/home.html`,
 opened by a small web app whose files are `assets/home-app/index.html` and its
 icons.
 
@@ -1576,7 +1585,7 @@ The debloating engine (`server/lib/services.js`) manages background system daemo
 `alwaysready` (`alwaysready.service`) was on the list until 0.73.2 and is now retired the same way.
 
 * **Symptom When Disabled**: On an OLED65C4PUA (webOS 10.3.1, firmware 33.31.68), the native Plex app showed video stretched vertically. Switching the service back on and rebooting restored the aspect ratio (#374).
-* **Why Disabling Offers No Benefit**: It saves about 3 MB of RAM. The Always Ready screen itself is switched off with the **Always Ready** setting under **Advanced &rarr; Power** (`lifeOnScreenMode`), which leaves the daemon in place.
+* **Why Disabling Offers No Benefit**: It saves about 3 MB of RAM. The Always Ready screen itself is switched off with the **Always Ready** setting under **System &rarr; Power** (`lifeOnScreenMode`), which leaves the daemon in place.
 * **Migration**: `services.init()` drops both retired IDs (`RETIRED`) from `disabled_services.json`, removes their masks under `/run/systemd/transient`, starts them and rewrites the boot hook. The reported Plex fault cleared only after a reboot with the service running.
 ---
 
@@ -1596,11 +1605,11 @@ Custom QML screensavers are staged in `/var/lib/tvweb/screensaver` and bind-moun
 
 ## PicCap
 
-The server asks PicCap's service only where `/media/developer/apps/usr/palm/applications/org.webosbrew.piccap` exists and webOS is version 3 or later, so a TV without it or running webOS 2 starts no `luna-send` for it (querying PicCap's native service on webOS 2 stalled the Luna bus and tripped a watchdog reboot, #746). For Home Assistant it polls every `piccap.pollIntervalMs` milliseconds (30 seconds by default) while MQTT is connected and the `piccap` entity is not switched off in the entity settings. An old `"piccap": {"enabled": false}` is turned into exactly that at start-up, and the key removed. Telemetry includes boolean `piccap.power` while PicCap answers; the bridge publishes retained `ON` or `OFF` to `<prefix>/state/piccap/power`, and `<prefix>/command/piccap/power` accepts `ON` or `OFF` when `allowControl` is enabled. Discovery carries the `piccap` switch only while a status check has answered, and is republished when that changes. `/api/stats` adds `piccapCapture: {running}` where PicCap answers, for the Advanced tab's switch, which sends the `piccap` control.
+The server asks PicCap's service only where `/media/developer/apps/usr/palm/applications/org.webosbrew.piccap` exists and webOS is version 3 or later, so a TV without it or running webOS 2 starts no `luna-send` for it (querying PicCap's native service on webOS 2 stalled the Luna bus and tripped a watchdog reboot, #746). For Home Assistant it polls every `piccap.pollIntervalMs` milliseconds (30 seconds by default) while MQTT is connected and the `piccap` entity is not switched off in the entity settings. An old `"piccap": {"enabled": false}` is turned into exactly that at start-up, and the key removed. Telemetry includes boolean `piccap.power` while PicCap answers; the bridge publishes retained `ON` or `OFF` to `<prefix>/state/piccap/power`, and `<prefix>/command/piccap/power` accepts `ON` or `OFF` when `allowControl` is enabled. Discovery carries the `piccap` switch only while a status check has answered, and is republished when that changes. `/api/stats` adds `piccapCapture: {running}` where PicCap answers, for the System tab's switch, which sends the `piccap` control.
 
 ## Hue Sync
 
-Hue Sync is offered where `/media/cryptofs/apps/usr/palm/services/com.lighting.huesync.service` exists, the retail install from LG's store, so a TV without the app starts no `luna-send` for it. For Home Assistant it polls `com.lighting.huesync.service/get` (`{"key":"streaming","data":""}`, the reply carries the state as `value`: `"0"` stopped, `"1"` streaming) every `huesync.pollIntervalMs` milliseconds (30 seconds by default) while MQTT is connected and the `huesync` entity is not switched off in the entity settings. Every call carries the app's ACL id `com.lighting.huesync`, the service's own. Toggling sends `com.lighting.huesync.service/set` with `{"key":"streaming","data":true|false}` and re-reads the state 400 ms later, like PicCap's start/stop; an enable instead waits 3 s after each `set` and is sent again until that re-read reports streaming, up to three attempts, because the app answers the first `set` with `returnValue` true while its own `get` still reads `"0"`, or reads `"1"` once and falls back to `"0"` seconds later. Telemetry includes boolean `huesync.streaming` while Hue Sync answers; the bridge publishes retained `ON` or `OFF` to `<prefix>/state/huesync/power`, and `<prefix>/command/huesync/power` accepts `ON` or `OFF` when `allowControl` is enabled. Discovery carries the `huesync` switch only while a status check has answered, and is republished when that changes. `/api/stats` adds `huesyncStreaming: {streaming}` where Hue Sync answers, for the Advanced tab's switch, which sends the `huesync` control.
+Hue Sync is offered where `/media/cryptofs/apps/usr/palm/services/com.lighting.huesync.service` exists, the retail install from LG's store, so a TV without the app starts no `luna-send` for it. For Home Assistant it polls `com.lighting.huesync.service/get` (`{"key":"streaming","data":""}`, the reply carries the state as `value`: `"0"` stopped, `"1"` streaming) every `huesync.pollIntervalMs` milliseconds (30 seconds by default) while MQTT is connected and the `huesync` entity is not switched off in the entity settings. Every call carries the app's ACL id `com.lighting.huesync`, the service's own. Toggling sends `com.lighting.huesync.service/set` with `{"key":"streaming","data":true|false}` and re-reads the state 400 ms later, like PicCap's start/stop; an enable instead waits 3 s after each `set` and is sent again until that re-read reports streaming, up to three attempts, because the app answers the first `set` with `returnValue` true while its own `get` still reads `"0"`, or reads `"1"` once and falls back to `"0"` seconds later. Telemetry includes boolean `huesync.streaming` while Hue Sync answers; the bridge publishes retained `ON` or `OFF` to `<prefix>/state/huesync/power`, and `<prefix>/command/huesync/power` accepts `ON` or `OFF` when `allowControl` is enabled. Discovery carries the `huesync` switch only while a status check has answered, and is republished when that changes. `/api/stats` adds `huesyncStreaming: {streaming}` where Hue Sync answers, for the System tab's switch, which sends the `huesync` control.
 
 
 

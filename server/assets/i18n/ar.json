@@ -1313,7 +1313,7 @@
  "srv.home.unknownPart": {"text": "لا يوجد قسم بهذا الاسم في الشاشة الرئيسية", "from": "There is no such part of the Home screen"},
  "srv.home.unknownTile": {"text": "هذه الأيقونة غير موجودة في واجهة Glasshouse الرئيسية", "from": "that is not on Glasshouse Home"},
  "srv.home.unsupported": {"text": "لا يمكن تعديل الشاشة الرئيسية لهذا التلفاز من هنا", "from": "This TV's Home screen cannot be changed from here"},
- "srv.home.untested": {"text": "تمت تجربة واجهة Glasshouse الرئيسية على webOS 7 و9 و10 فقط. يعمل هذا التلفاز بنظام webOS {version}.", "from": "Glasshouse Home has been tried only on webOS 7, 9 and 10. This TV runs webOS {version}."},
+ "srv.home.untested": {"text": "جُرّبت واجهة Glasshouse الرئيسية فقط على webOS 5 و6 و7 و9 و10. يعمل هذا التلفاز بنظام webOS {version}.", "from": "Glasshouse Home has been tried only on webOS 5, 6, 7, 9 and 10. This TV runs webOS {version}."},
  "srv.home.wallExampleBad": {"text": "لم يكتمل تنزيل الخلفية بشكل سليم. حاول مجدداً لاحقاً.", "from": "A wallpaper did not download intact. Try again later."},
  "srv.home.wallSlot": {"text": "فترة خلفية غير معروفة", "from": "unknown wallpaper slot"},
  "srv.home.wallUploadImage": {"text": "اختر صورة JPEG صالحة بأبعاد تصل إلى 1920 × 1080 بكسل.", "from": "Choose a valid JPEG up to 1920 × 1080 pixels."},
@@ -2425,5 +2425,9 @@
  "srv.typing.pageAddress": {"text": "ليس لدى الصفحة عنوان مصحح الأخطاء", "from": "the page has no debugger address"},
  "srv.typing.pageClosed": {"text": "أغلقت الصفحة اتصال مصحح الأخطاء", "from": "the page closed the debugger connection"},
  "srv.typing.pageGarbled": {"text": "أرسلت الصفحة شيئاً غير مقروء", "from": "the page sent something unreadable"},
- "srv.typing.pageTimeout": {"text": "لم تستجب الصفحة", "from": "the page did not answer"}
+ "srv.typing.pageTimeout": {"text": "لم تستجب الصفحة", "from": "the page did not answer"},
+ "home.restartsApps": {"text": "على هذا التلفاز، يؤدي تشغيل واجهة Glasshouse الرئيسية أو إيقافها، أو الضغط مطولاً على زر الصفحة الرئيسية لفتح شاشة LG الرئيسية، إلى إعادة تشغيل مدير التطبيقات في التلفاز، مما يغلق التطبيقات المفتوحة.", "from": "On this TV, switching Glasshouse Home on or off, or holding Home for LG’s Home, restarts the TV’s app manager, which closes the apps that are open."},
+ "home.recents.desc": {"text": "التطبيقات المخفية هنا لا تظهر أبداً في التطبيقات الأخيرة لواجهة Glasshouse الرئيسية (زر الرجوع على الواجهة)، ولا آخر شاشة لها. تبقى أيقوناتها في صف التطبيقات.", "from": "Apps hidden here never show in Glasshouse Home’s Recent apps (Back on Home), nor does their last screen. Their tiles stay on the Apps row."},
+ "home.recents.hiddenCount": {"text": "{n} مخفية", "from": "{n} hidden"},
+ "tab.system": {"text": "النظام", "from": "System"}
 }

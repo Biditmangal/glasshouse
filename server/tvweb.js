@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.132.0';
+var TVWEB_VERSION = '0.136.0';
 
 var http = require('http');
 var fs = require('fs');
@@ -531,9 +531,9 @@ var LIVE_STALE = {
 };
 
 lgSettings.init({ luna: luna, lunaCached: lunaCached, clearLunaCache: clearLunaCache });
-audioCapabilities.init({ luna: luna, lunaCached: lunaCached, hdmiReceiverMap: telemetry.hdmiReceiverMap });
+audioCapabilities.init({ luna: luna, lunaCached: lunaCached, clearLunaCache: clearLunaCache, hdmiReceiverMap: telemetry.hdmiReceiverMap });
 game.init({ lunaCached: lunaCached, inputKey: telemetry.inputKey });
-privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings, services: servicesModule });
+privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings, services: servicesModule, watchNetwork: true });
 oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });
@@ -1707,6 +1707,14 @@ function setupHomeAssistant() {
 
     if (action === 'toast') {
       doControl('toast', val, function() {});
+      return;
+    }
+
+    // notify/<type>, the text optionally opening with ":icon:".
+    if (action === 'notify' || action.indexOf('notify/') === 0) {
+      doControl('toast', { type: action.substring(7) || 'standard', text: val }, function (r) {
+        if (!r || !r.ok) console.error('mqtt: ' + action + ' failed: ' + ((r && r.error) || 'unknown error'));
+      });
       return;
     }
 
